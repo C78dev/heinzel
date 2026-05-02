@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.7.0 — 2026-05-02
+
+- `heinzel-email` now pins the persona of every outgoing
+  message: Heinzel is the apparent author, the operator is
+  the principal Heinzel acts for. Body text, including any
+  casual sign-off above the fixed greeting, speaks in
+  Heinzel's voice on the operator's behalf. A closing line
+  in the body must read like `Heinzel (for <Operator>)`,
+  never `<Operator> (via heinzel)` or any phrasing that
+  frames the operator as the author with Heinzel as a
+  delivery channel.
+- The `Reply-To` resolution rule is now explicit that the
+  operator email is the human *using* Heinzel, never an
+  account on the managed server. The skill must not probe
+  `getent passwd`, `/etc/aliases`, `~/.forward`, or any
+  mail metadata on the target host to derive it. Replies
+  always land in the operator's real off-server inbox.
+
 ## 2.6.0 — 2026-04-27
 
 - `heinzel-email` now sets `From: noreply@<sending-host-fqdn>`

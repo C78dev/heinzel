@@ -232,6 +232,26 @@ the only root-privileged operation in the workflow.
       5 attachments per message in v1; refuse the 6th and
       suggest splitting the mail.
 
+   **Voice.** Heinzel, not the operator, is the apparent
+   author of every outgoing message. Body text — including
+   any casual sign-off the user asks for above the fixed
+   greeting — must speak in Heinzel's voice on the
+   operator's behalf. If a closing line precedes the
+   greeting (e.g. "Have a good week,"), attribute it to
+   Heinzel acting for the operator, like:
+
+   ```
+   Have a good week,
+   Heinzel (for <Operator name>)
+   ```
+
+   Never write `<Operator> (via heinzel)`, `<Operator> via
+   heinzel`, or any phrasing that frames the operator as
+   the author with Heinzel as a delivery channel. The
+   persona is **"Heinzel for `<Operator>`"**, not
+   "`<Operator>` via Heinzel". Same applies to the subject
+   and any inline narration.
+
    **Greeting.** Before the signature, every outgoing
    message carries a fixed two-line human close, separated
    from the body above by one blank line and from the
@@ -327,14 +347,27 @@ the only root-privileged operation in the workflow.
    at the human operator, so recipients hitting "Reply"
    land in a real inbox.
 
+   The operator email is the address of the human
+   *using* Heinzel — the same person logged into Claude
+   Code right now. It is **never** an account on the
+   managed server: no `root@<host>`, no
+   `<ssh-user>@<host>`, no alias derived from `/etc/aliases`
+   or `~/.forward` on the target. Do not probe
+   `getent passwd`, `id`, or any mail metadata on the
+   managed host to resolve it. Replies must land in the
+   operator's real inbox, not on the server they were
+   asking Heinzel to work on.
+
    **Resolve `<operator email>`** in this order, stop at
    the first hit. Never fabricate an email from a short
-   handle like `root` or `admin`:
+   handle like `root` or `admin`, and never derive it
+   from a managed host:
 
    1. `Reply-To:` line in
       `memory/servers/<host>/memory.md` (per-host
-      override, rare — e.g. a different person fields
-      replies for one specific host).
+      override, rare — e.g. a different operator fields
+      replies for one specific host; still must be a
+      real off-server inbox).
    2. `Reply-To:` line in `memory/user.md` (global,
       canonical).
    3. Claude Code auto-memory — the "Default email"
