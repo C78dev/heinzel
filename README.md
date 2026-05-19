@@ -317,7 +317,7 @@ pending and asks whether to continue or start fresh.
 Run routine health inspections on any server:
 
 ```
- ❯ Run housekeeping on bremen1.wintermeyer.de
+ ❯ Run housekeeping on app.example.com
 ```
 
 Heinzel checks disk, memory, load, pending updates,
@@ -336,12 +336,29 @@ Check security configuration on any server:
 Heinzel checks SSH password authentication settings,
 firewall status, and reports issues by severity.
 
+### Fleet audit
+
+Compare key policies across every server Heinzel knows about:
+
+```
+ ❯ Run a fleet audit
+ ❯ Vergleiche die Policies auf allen Servern
+```
+
+Heinzel probes unattended-upgrades, sshd effective config,
+firewall posture, MTA, time sync, and auto-reboot behaviour
+on each host in `memory/servers/`, then renders a
+side-by-side table that highlights where servers disagree.
+Read-only — the skill never modifies a host. Use it after
+fixing a config bug on one server to find which others
+carry the same bug, or as a periodic consistency check.
+
 ### Email reports
 
 Send ad-hoc text or files by email about a managed server:
 
 ```
- ❯ Email me the output of "df -h" from bremen1
+ ❯ Email me the output of "df -h" from app.example.com
  ❯ Mail /var/log/auth.log to ops@example.com
 ```
 
@@ -835,6 +852,8 @@ bin/
                          (SKILL.md + references/)
     heinzel-email/     — Send ad-hoc text or files by email
                          from a server (SKILL.md)
+    heinzel-fleet-audit/   — Cross-server policy drift audit
+                         (SKILL.md + references/)
 rules/                 — Upstream rule files (git-tracked)
   debian.md            — Debian & Ubuntu rules
   rhel.md              — RHEL, CentOS, Fedora, Rocky,

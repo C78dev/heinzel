@@ -31,7 +31,7 @@ Two acceptable shapes:
    ```
    logger -t heinzel \
      "Installed nginx — because user is migrating \
-   vutuv.de from frankfurt2"
+   site.example.com from the old host"
    ```
 
 2. **Separate entry** — when the reason is longer
@@ -40,10 +40,10 @@ Two acceptable shapes:
 
    ```
    logger -t heinzel \
-     "Reason: preparing bremen2 to host abuuba.de \
-   podcast platform"
+     "Reason: preparing this host to run \
+   app.example.com"
    logger -t heinzel "Installed postgresql-16"
-   logger -t heinzel "Created database abuuba_prod"
+   logger -t heinzel "Created database app_prod"
    ```
 
 If the reason is not known, do not invent one.

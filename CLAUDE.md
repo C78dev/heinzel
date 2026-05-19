@@ -283,7 +283,19 @@ attachment handling (readability + size + preview gates),
 verify, and memory update. Per-server config (recipient,
 source, transport, sender identity, policies) lives in
 `memory/servers/<hostname>/memory.md`, extending the
-`Mail:` / `Alert email:` lines bremen3 already demonstrates.
+existing `Mail:` / `Alert email:` lines pattern.
+
+## Fleet Audit
+
+Only when the user asks. The `heinzel-fleet-audit` skill in
+`.claude/skills/heinzel-fleet-audit/` compares key policies
+(unattended-upgrades, sshd effective config, firewall
+posture, MTA, time sync, auto-reboot behaviour) across all
+servers in `memory/servers/` and surfaces silent drift in a
+side-by-side table. Read-only — never modifies a host. Use
+after fixing a config bug on one server to find which
+others carry the same bug, or as a periodic consistency
+check across the fleet.
 
 ## Programming Language Runtimes
 

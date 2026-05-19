@@ -47,8 +47,8 @@ applies before any of this runs.
       "mail it to bob@example.com") → use that. Don't override
       it with stored values.
    2. **Per-server memory** — `memory/servers/<host>/memory.md`
-      has an `Alert email:` line (the bremen3 pattern) → use
-      that.
+      has an `Alert email:` line (the established pattern) →
+      use that.
    3. **"Send me" shorthand** ("email me", "send me", "mail it
       to me") and the user's default email is recorded in
       Claude Code's auto-memory (the `MEMORY.md` index will
@@ -79,10 +79,11 @@ applies before any of this runs.
        5L.
 
    Why this gate exists: some hosts have great mail
-   infrastructure (bremen3's postfix → Google MX); others have
-   none and the user may prefer not to install anything on
-   them. Either side is a perfectly valid choice the user
-   should be able to lock in once.
+   infrastructure (e.g. a working local Postfix relaying to
+   an external smarthost); others have none and the user may
+   prefer not to install anything on them. Either side is a
+   perfectly valid choice the user should be able to lock in
+   once.
 
 ### 5L. Local-side workflow
 
@@ -173,8 +174,9 @@ mail almost never needs root. Choose the UID for the send,
 in this order:
 
 1. Current SSH user is non-root → use that user.
-2. Current SSH user is root (common: bremen3-style no-sudo,
-   or privileged earlier work in the session):
+2. Current SSH user is root (common on hosts that allow only
+   root SSH with no usable sudo, or after privileged earlier
+   work in the session):
    - First check `memory.md` for an `Email sender:` line —
      if present, use it without re-probing.
    - Otherwise read `memory/user.md` for the preferred
@@ -530,9 +532,9 @@ the only root-privileged operation in the workflow.
 
 No new file. The skill reads and updates lines in the
 existing `memory/servers/<host>/memory.md`, extending the
-format bremen3 already uses. Policy lines are only written
-once the user picks **Always** or **Never**; absence means
-"ask next time".
+existing per-server memory format. Policy lines are only
+written once the user picks **Always** or **Never**;
+absence means "ask next time".
 
 ```
 - Mail: <transport summary>          # remote path only

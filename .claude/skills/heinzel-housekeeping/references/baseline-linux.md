@@ -79,17 +79,79 @@ zypper --quiet list-updates 2>/dev/null \
 
 ## Automatic Security Updates
 
-Verify the auto-update mechanism is active. Use the distro-specific
-check from `rules/<family>.md`.
+Verify that auto-updates are actually installing security
+updates, not just that the unit is enabled. A unit can be
+"active" while the daily run does nothing. Real-world failure
+modes that the simple `is-active` check misses:
+
+- `/etc/apt/apt.conf.d/20auto-upgrades` missing or zeroed
+  out: the timer fires but `APT::Periodic::Unattended-Upgrade`
+  is `0`, so the daily run exits after one second.
+- `Origins-Pattern` missing the `${distro_codename}-security`
+  codename on Debian Trixie or later: `security.debian.org`
+  publishes there with the `-security` codename, so security
+  packages fail the filter even though
+  `apt-cache policy` shows them as the install candidate.
+- No `Mail` or `MailReport` set: UA errors never surface.
+- Timer alive but only installing third-party packages
+  (e.g. `mise`): the Debian security archive is unreachable
+  for some reason and nobody knows.
 
 **Debian/Ubuntu:**
 
 ```bash
-systemctl is-active unattended-upgrades.service
+# 1. Package present.
 dpkg -l unattended-upgrades 2>/dev/null \
-  | grep -q "^ii" && echo "installed" \
-  || echo "not installed"
+  | grep -q "^ii" && echo "pkg=ok" || echo "pkg=MISSING"
+
+# 2. Daily timer enabled.
+systemctl is-enabled apt-daily-upgrade.timer 2>/dev/null
+
+# 3. APT::Periodic actually turns the runs on.
+apt-config dump APT::Periodic 2>/dev/null \
+  | grep -E "(Update-Package-Lists|Unattended-Upgrade) "
+
+# 4. Origins-Pattern covers the codename-security archive
+#    (Debian Trixie+ publishes Codename: <release>-security).
+codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
+pattern="codename=\\\$\{distro_codename\}-security"
+pattern="${pattern}|codename=${codename}-security"
+apt-config dump Unattended-Upgrade::Origins-Pattern \
+  2>/dev/null \
+  | grep -qE "$pattern" \
+  && echo "origins=ok" \
+  || echo "origins=MISSING ${codename}-security pattern"
+
+# 5. Notification destination set (else failures are silent).
+apt-config dump 2>/dev/null \
+  | grep -E "Unattended-Upgrade::(Mail |MailReport)"
+
+# 6. Recent real activity: did a Debian package upgrade run
+#    in the last 30 days, not just no-op runs?
+zgrep -h "Pakete, welche aktualisiert werden\|Packages that will be upgraded" \
+  /var/log/unattended-upgrades/unattended-upgrades.log* \
+  2>/dev/null | tail -5
 ```
+
+Severity rules (Debian-specific):
+
+- **CRITICAL** if `20auto-upgrades` is missing or any of its
+  values is `0`. The timer fires but does nothing — silent
+  total failure.
+- **CRITICAL** if `Origins-Pattern` is missing the
+  `${distro_codename}-security` entry on Trixie or later.
+  Every Debian security update is silently skipped.
+- **WARN** if neither `Mail` nor `MailReport` is set. UA
+  errors will be invisible.
+- **WARN** if the log shows no Debian package upgrade lines
+  in the last 30 days despite the timer running daily. UA is
+  alive but accomplishing nothing for the Debian archive.
+- **INFO** if `Automatic-Reboot-Time` is set to a fixed
+  HH:MM: this defers the post-kernel reboot to that time
+  the next day, leaving the new userland on the old kernel
+  for up to ~24 hours (vulnerability window plus risk of
+  userland/kernel ABI mismatch). Prefer the default ("now")
+  so reboot follows the apt-daily-upgrade morning slot.
 
 **RHEL/CentOS/Fedora:**
 
@@ -229,3 +291,59 @@ echo "Installed: $installed"
 
 - **INFO** if running kernel differs from installed (reboot
   recommended)
+
+## Critical Services: Running Binary vs Installed Package
+
+A package upgrade installs new bytes on disk, but the
+already-running master keeps the old binary mapped in
+memory until the service is reloaded or restarted. After
+a package upgrade, `needrestart` may also defer some
+services because restarting them is risky (notably
+`docker.service`, `dbus.service`, `getty@*`,
+`systemd-logind`). The result: the security fix is
+installed but not active, and nothing complains.
+
+**Debian/Ubuntu** (needrestart is in the default
+install since Bookworm):
+
+```bash
+if command -v needrestart >/dev/null 2>&1; then
+  needrestart -b -p 2>&1
+fi
+```
+
+`needrestart -b` (batch) emits machine-readable
+`NEEDRESTART-VER`, `NEEDRESTART-KCUR`, `NEEDRESTART-KEXP`,
+`NEEDRESTART-KSTA`, `NEEDRESTART-UCSTA`, and one
+`NEEDRESTART-SVC:` line per service that wants a restart.
+Exit code: 0 = nothing, 1 = containers, 2 = services,
+3 = kernel.
+
+Manual fallback (any Linux), works without needrestart by
+comparing the on-disk binary's mtime against the running
+process's start time via `/proc/<pid>/exe`:
+
+```bash
+for svc in nginx postfix sshd postgres docker ollama \
+           opendkim dovecot mariadbd; do
+  pid=$(pgrep -o -x "$svc" 2>/dev/null) || continue
+  bin=$(readlink -f "/proc/$pid/exe" 2>/dev/null) \
+    || continue
+  bin_time=$(stat -c %Y "$bin" 2>/dev/null) || continue
+  proc_time=$(stat -c %Y "/proc/$pid" 2>/dev/null) \
+    || continue
+  if [ "$bin_time" -gt "$proc_time" ]; then
+    echo "$svc: on-disk binary newer than running \
+process (pkg installed after process started)"
+  fi
+done
+```
+
+- **WARN** for each critical service whose on-disk binary
+  is newer than the running master. The security patch is
+  installed but the running process has not picked it up.
+- **INFO** if `needrestart` reports kernel or services
+  that want a reboot/restart (`NEEDRESTART-KSTA` not 1, or
+  any `NEEDRESTART-SVC:` line). For deferred services,
+  reload is usually enough; for the kernel, only a reboot
+  helps.

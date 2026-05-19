@@ -1,5 +1,50 @@
 # Changelog
 
+## 2.8.0 — 2026-05-19
+
+- New skill `heinzel-fleet-audit`: read-only side-by-side
+  comparison of key policies (unattended-upgrades, sshd
+  effective config, firewall posture, MTA, time sync,
+  auto-reboot behaviour) across every server in
+  `memory/servers/`. Surfaces silent drift between hosts
+  in a single table with a "Drift detected" section that
+  links each disagreement to a suggested fix. Never
+  modifies a host. Use after a config fix on one server
+  to find which others carry the same bug, or as a
+  periodic consistency check.
+- `heinzel-housekeeping` now audits whether
+  unattended-upgrades is actually *installing* security
+  updates, not just whether the unit is "active". The
+  Debian/Ubuntu baseline now checks that
+  `/etc/apt/apt.conf.d/20auto-upgrades` exists with both
+  periodic values set to 1, that the Origins-Pattern
+  includes the `${distro_codename}-security` codename
+  required by Debian Trixie and later, that `Mail` or
+  `MailReport` is set so failures are not silent, and
+  that the log shows recent Debian package activity in
+  the last 30 days (not just no-op runs). Flags
+  `Automatic-Reboot-Time` as anti-pattern because
+  deferring the kernel reboot leaves the new userland
+  on the old kernel for hours.
+- `heinzel-housekeeping` now checks for the gap between
+  installed package and running binary on critical
+  services. Uses `needrestart -b -p` where available, with
+  a manual `/proc/<pid>/exe` mtime fallback. Catches the
+  case where a security patch is installed but the
+  master process kept the old binary in memory, and the
+  case where `needrestart` deferred a restart (most often
+  `docker.service`, `dbus.service`, `systemd-logind`).
+- `rules/backups.md` now explicitly forbids leaving
+  in-place backups inside drop-in directories
+  (`/etc/apt/apt.conf.d/`, `/etc/sudoers.d/`,
+  `/etc/ssh/sshd_config.d/`, `/etc/cron.d/`,
+  `/etc/systemd/system/*.d/`, `/etc/nginx/conf.d/`,
+  `/etc/logrotate.d/`, `/etc/profile.d/`). Those
+  directories are parsed file by file, so a `.bak` or
+  timestamped sibling either logs daily warnings or
+  changes runtime behaviour. Backups go to
+  `/var/backups/heinzel/` only.
+
 ## 2.7.0 — 2026-05-02
 
 - `heinzel-email` now pins the persona of every outgoing
@@ -252,8 +297,8 @@
 - Per-server config (recipient, source, transport, sender
   identity, policies) lives in
   `memory/servers/<host>/memory.md`, extending the existing
-  `Mail:` / `Alert email:` lines bremen3 already
-  demonstrates. No new memory subsystem.
+  `Mail:` / `Alert email:` lines convention already in use.
+  No new memory subsystem.
 - Why: heinzel reports lived only in the conversation;
   there was no way to ship a log snippet, a housekeeping
   summary, or a list of failed services to an inbox.
@@ -527,8 +572,8 @@ most installs through setup in a single `1` press.
   Questions** section and a direct pointer to the
   new checklist from the Remote mode section.
 
-Why: on bremen3.wintermeyer.de, Claude ran `df -h`
-in response to a disk-space question and skipped
+Why: on a managed host, Claude ran `df -h` in
+response to a disk-space question and skipped
 the entire onboarding pipeline, citing "you only
 asked a quick question." No rule permitted that
 shortcut — Claude invented it. Tightening the
