@@ -659,6 +659,28 @@ follows least privilege. Permission modes only change
 how often *you* are asked, not the built-in
 guardrails.
 
+### Scheduled housekeeping
+
+Auto mode makes recurring, unattended health checks
+practical — a nightly housekeeping run that emails
+you the report:
+
+```
+17 6 * * * cd /path/to/heinzel && flock -n \
+  /tmp/heinzel-cron-server1.lock timeout 30m \
+  /abs/path/to/claude --permission-mode auto \
+  -p "Run housekeeping on server1.example.com and \
+email me the report" >> ~/heinzel-cron.log 2>&1
+```
+
+Two rules: run the exact prompt **interactively
+once** first, so the email recipient, sending path,
+and other one-time questions are answered and stored
+in memory (unattended runs can't answer pickers) —
+and **never use `--dangerously-skip-permissions` in
+cron**. Details, systemd-timer variant, and cron
+pitfalls: `rules/scheduled-housekeeping.md`.
+
 ## Safety & Guardrails
 
 Heinzel's safety rules are not optional — they're
@@ -925,6 +947,8 @@ rules/                 — Upstream rule files (git-tracked)
                          keys/passwords, metadata only
   service-reload.md    — Service reload/restart policy
                          (auto-proceed rules + opt-out)
+  scheduled-housekeeping.md — Recurring housekeeping via
+                         cron/systemd timer + claude -p
   version-check.md     — Proactive stable version checking
                          and upgrade nudges
 memory/                — All your user state (gitignored

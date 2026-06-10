@@ -271,6 +271,9 @@ The `heinzel-housekeeping` skill in
 workflow, baseline checks, report format, and
 service-specific probes. Custom cross-server checks
 still live in `memory/housekeeping.md` (gitignored).
+For running housekeeping on a schedule (cron or
+systemd timer + `claude -p`), read
+`rules/scheduled-housekeeping.md`.
 
 ## Security Audit
 
