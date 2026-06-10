@@ -1,5 +1,55 @@
 # Changelog
 
+## 2.10.0 — 2026-06-10
+
+- **Hard guardrails (Claude Code).** A shipped PreToolUse
+  hook (`.claude/hooks/guard-taboos.sh`) now mechanically
+  blocks the absolute taboos — halt/poweroff, `mkfs`,
+  partition-table writers, deleting SSH keys, writes to
+  `sshd_config` — in **every** permission mode, including
+  `--dangerously-skip-permissions`, and even when the
+  command hides inside an `ssh host "…"` wrapper. Read-only
+  forms (`fdisk -l`, `gpart show`, `sgdisk -p`, `cat
+  sshd_config`, …) stay allowed. Legitimate exceptions (OS
+  replacement) require the operator to launch the session
+  with `HEINZEL_GUARD_DISABLE=1`; the model cannot set it
+  inline. A minimal `permissions.deny` list backs the hook
+  as a second layer. 56-case test matrix in
+  `guard-taboos-test.sh`. Note: a session can now see a
+  command blocked mid-run — that is the guard working, not
+  an error. OpenCode does not read Claude Code hooks; there
+  the prose rules remain the safety layer.
+- **Backup-presence check in housekeeping.** Every
+  housekeeping run now answers the most basic question:
+  does this host have ANY data backup? Probes common tools
+  (restic, borg, rsnapshot, kopia, …), backup-shaped timers
+  and cron jobs, ZFS/btrfs/LVM snapshots (a same-pool
+  snapshot is flagged as not off-host), DB dump jobs, and
+  Time Machine on macOS. Nothing found is CRITICAL — and
+  because provider snapshots (Hetzner, AWS, Proxmox) are
+  invisible from inside the server, heinzel asks the user
+  once and records the answer as a `Backup:` line in the
+  server's memory, re-confirming after ~180 days.
+- **Scheduled housekeeping.** New
+  `rules/scheduled-housekeeping.md`: nightly/weekly health
+  reports via cron or systemd timer +
+  `claude --permission-mode auto -p "…"`, delivered by
+  heinzel-email. One interactive dry run answers all
+  one-time questions into memory; flock prevents
+  overlapping runs; never bypassPermissions unattended.
+- **Secrets hygiene.** New `rules/secrets.md`: secrets are
+  objects to manage, never content to display. Inspect
+  private keys, password files, and `.env` via metadata and
+  fingerprints (`ls -l`, `ssh-keygen -lf`,
+  `openssl x509 -noout`); redact credential values from
+  changelogs, memory, todo lists, and emails; likely-secret
+  files are refused as email attachments by default (even
+  the preview would leak); never copy key material under
+  the repo; user-pasted secrets are used once and never
+  persisted. Cross-referenced from CLAUDE.md, the changelog
+  and server-memory rules, anomaly detection, and the email
+  skill.
+
 ## 2.9.0 — 2026-06-10
 
 Repo-wide rules audit: every rule file, skill, and helper
