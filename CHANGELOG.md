@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.10.1 — 2026-06-10
+
+- **Fix: taboo guard failed open after `cd` (#2).** The
+  PreToolUse hook was registered with a relative script
+  path, but hook commands run in the session's current
+  working directory. After any `cd` the path no longer
+  resolved, the hook errored non-blocking, and every
+  subsequent Bash command ran unguarded. Both hooks
+  (guard-taboos, check-updates) are now registered via
+  `$CLAUDE_PROJECT_DIR`, and the test matrix gained a
+  check that rejects relative hook paths in
+  `settings.json`. Reported by @DanMitrea.
+
 ## 2.10.0 — 2026-06-10
 
 - **Hard guardrails (Claude Code).** A shipped PreToolUse

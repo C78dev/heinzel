@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/check-updates.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-updates.sh\"",
             "timeout": 15
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/guard-taboos.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-taboos.sh\"",
             "timeout": 5
           }
         ]
