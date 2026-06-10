@@ -15,6 +15,12 @@ Every session gets at least one entry. Reading back:
 If `logger` fails, log to local `changelog.log`
 only.
 
+## No Secrets
+
+Credential values never go into journal or
+`changelog.log` entries — record location and
+permissions instead. See `rules/secrets.md`.
+
 ## Include the Why
 
 When the reason for an action is known (from the

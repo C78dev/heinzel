@@ -90,7 +90,9 @@ can be git-shared in team mode. Copy keys to a
 location outside the repo (e.g.
 `~/heinzel-keys/<hostname>/`) with `0600` file
 and `0700` directory permissions, and record
-only that path in the inventory file.
+only that path in the inventory file. The
+general secrets-handling rule is in
+`rules/secrets.md`.
 
 ### Config File Backups
 

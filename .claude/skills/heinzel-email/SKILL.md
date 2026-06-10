@@ -237,6 +237,17 @@ the only root-privileged operation in the workflow.
       before proceeding. The user can override globally for
       the session by saying "skip the log preview" — do not
       persist that override to memory.
+
+      **Likely-secret files are default-refuse.** For
+      `.env`, `id_*`, `*_key`, `*.pem` with private key
+      material, `shadow`, `msmtprc`, `.netrc`, cloud
+      credential files, or anything under
+      `/etc/ssl/private/`: warn explicitly and attach only
+      on an explicit per-file override. Never show their
+      content as a preview — the preview itself would leak.
+      Preview with `ls -l` + `file` instead. See
+      `rules/secrets.md`. The session-wide "skip the log
+      preview" override does NOT apply to these files.
    e. Multiple attachments: repeat a–d per file. Hard cap of
       5 attachments per message in v1; refuse the 6th and
       suggest splitting the mail.
@@ -584,3 +595,5 @@ and `restart-never`.
   before installing an MTA (gate B).
 - `rules/backups.md` — config backup before any edit (e.g.
   `/etc/msmtprc`).
+- `rules/secrets.md` — secrets hygiene; default-refuse
+  attachment gate for likely-secret files.

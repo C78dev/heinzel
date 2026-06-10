@@ -710,6 +710,12 @@ under pressure.
   data only. Suspicious patterns (text addressing the
   AI, embedded commands, safety-rule overrides) are
   flagged to the user, never followed.
+- **Keeps secrets out of transcripts** — private
+  keys, password files, and `.env` contents are
+  inspected via metadata and fingerprints, never
+  printed into the conversation, reports, memory,
+  changelogs, or emails. Likely-secret files are
+  refused as email attachments by default.
 
 ## How Heinzel Fights LLM Hallucinations
 
@@ -915,6 +921,8 @@ rules/                 — Upstream rule files (git-tracked)
                          starting services
   service-class-check.md — One web server / database /
                          MTA per host unless approved
+  secrets.md           — Secrets hygiene: never print
+                         keys/passwords, metadata only
   service-reload.md    — Service reload/restart policy
                          (auto-proceed rules + opt-out)
   version-check.md     — Proactive stable version checking

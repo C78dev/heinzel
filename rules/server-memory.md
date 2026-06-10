@@ -27,3 +27,6 @@ change.** Keep it compact (~30 lines max). Remove
 outdated entries, merge related items.
 
 **Update `Last connected:` on every connection.**
+
+Memory files never hold credential values — see
+`rules/secrets.md`.

@@ -181,6 +181,13 @@ same `memory/servers/<hostname>/rules.md` file.
 
 Read `rules/anomaly-detection.md`.
 
+## Secrets Hygiene
+
+Read `rules/secrets.md`. Never print private keys,
+password files, or `.env` contents into the
+conversation, reports, memory, changelogs, or
+emails. Inspect metadata and fingerprints instead.
+
 ## SSH User & Language
 
 Read `rules/ssh-user.md`. Usernames and language
