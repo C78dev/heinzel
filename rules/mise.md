@@ -120,11 +120,12 @@ Trade-offs:
 #### Debian & Ubuntu
 
 ```
-apt-get update && apt-get install -y gpg sudo wget curl
+apt-get update && apt-get install -y gpg wget
+install -d -m 755 /etc/apt/keyrings
 wget -qO - https://mise.jdx.dev/gpg-key.pub \
   | gpg --dearmor \
   | tee /etc/apt/keyrings/mise-archive-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=amd64] https://mise.jdx.dev/deb stable main" \
+echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=$(dpkg --print-architecture)] https://mise.jdx.dev/deb stable main" \
   | tee /etc/apt/sources.list.d/mise.list
 apt-get update && apt-get install -y mise
 ```
@@ -139,6 +140,11 @@ dnf install -y mise
 ```
 
 On RHEL 7/CentOS 7, use `yum` instead of `dnf`.
+
+**Note:** `dnf config-manager` syntax differs
+between dnf4 and dnf5, and the yum-era command is
+`yum-config-manager` — check `--help` on the
+target first.
 
 #### SUSE
 
@@ -169,7 +175,25 @@ zypper install -y mise
 non-login shell where `.bashrc` is typically not
 sourced.
 
-After installing mise, add both `~/.local/bin` (for the
+**Check the user's login shell first** — the steps
+below are **bash-only**:
+
+```
+getent passwd <user> | cut -d: -f7
+```
+
+- **bash:** follow the `.bashrc` / `.bash_profile`
+  steps below.
+- **zsh** (macOS default): put the PATH export in
+  `~/.zshenv` — zsh sources it for every
+  invocation, including non-interactive SSH
+  commands.
+- **sh / csh** (FreeBSD root commonly runs these):
+  POSIX `sh` reads the file named by `$ENV`
+  (commonly `~/.shrc`); `csh`/`tcsh` read
+  `~/.cshrc` and use `setenv PATH ...` syntax.
+
+For bash, add both `~/.local/bin` (for the
 `mise` binary itself) and the shims directory (for
 language runtimes) to `PATH` **at the top of
 `~/.bashrc`** — before the interactive guard
@@ -179,18 +203,27 @@ Debian/Ubuntu, because `~/.bash_profile` is **not**
 sourced for non-login, non-interactive SSH commands.
 
 ```bash
-# Insert at the very top of ~/.bashrc
+# Insert at the very top of ~/.bashrc.
+# The grep guard makes re-runs a no-op.
+grep -q '# mise (before interactive guard)' ~/.bashrc || \
 sed -i '1i# mise (before interactive guard)\
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"\
 ' ~/.bashrc
 ```
 
-Also create `~/.bash_profile` to source `.bashrc`
+Also extend `~/.bash_profile` to source `.bashrc`
 for interactive login shells and set XDG_RUNTIME_DIR
-(needed for systemd user services over SSH):
+(needed for systemd user services over SSH). Back up
+an existing file first (`rules/backups.md`), append
+rather than overwrite, and guard with a marker so
+re-runs are no-ops:
 
 ```bash
-cat > ~/.bash_profile << 'EOF'
+[ -f ~/.bash_profile ] && \
+  cp ~/.bash_profile ~/.bash_profile.bak.$(date +%F)
+grep -q '# mise shims' ~/.bash_profile 2>/dev/null || \
+cat >> ~/.bash_profile << 'EOF'
+# mise shims
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 
@@ -222,12 +255,14 @@ If neither file is sourced, fall back to:
 
 ## Installing Languages
 
-Install languages **as the SSH user** (not root). Use
+Install languages **as the SSH user** (not root).
+Web-search the current LTS/stable version first —
+never trust training data (see CLAUDE.md). Use
 `mise use --global` to set a default version:
 
 ```
-mise use --global node@24
-mise use --global ruby@3.3
+mise use --global node@<current-LTS>
+mise use --global ruby@<current-stable>
 ```
 
 After installing, verify over SSH:
@@ -243,7 +278,7 @@ When mise and languages are installed, add a single
 line to the server's `memory.md`:
 
 ```
-- mise: node@24.1.0, ruby@3.3.7
+- mise: node@<version>, ruby@<version>
 ```
 
 Update this line whenever languages are added, removed,

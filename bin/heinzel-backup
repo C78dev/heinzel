@@ -19,10 +19,22 @@ set -e
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 SELF="$SCRIPT_DIR/$(basename "$0")"
+ORIG_PWD=$(pwd)
 cd "$REPO_DIR"
 
 usage() {
   awk '/^# heinzel-backup/{in_help=1} in_help{if(/^[^#]/)exit; sub(/^# ?/,""); print}' "$SELF"
+}
+
+# Resolve a user-supplied path against the directory
+# the user invoked us from. We cd into the repo root
+# above, so a bare relative path would otherwise
+# silently land there instead of the user's CWD.
+resolve_path() {
+  case "$1" in
+    /*) printf '%s\n' "$1" ;;
+    *)  printf '%s\n' "$ORIG_PWD/$1" ;;
+  esac
 }
 
 archive_hostname() {
@@ -49,6 +61,9 @@ do_backup() {
     TS=$(date -u +%Y%m%d-%H%M%SZ)
     OUT="heinzel-backup-$(archive_hostname)-$TS.tar.gz"
   fi
+  # Write relative to where the user invoked us, not
+  # the repo root.
+  OUT=$(resolve_path "$OUT")
   # Build a file list and hand it to tar via -T.
   TMPLIST=$(mktemp "${TMPDIR:-/tmp}/heinzel-backup.XXXXXX")
   trap 'rm -f "$TMPLIST"' EXIT
@@ -75,9 +90,9 @@ do_restore() {
     exit 1
   fi
 
-  # Validate: every entry must be under memory/ and
-  # must not contain .. or absolute paths. This
-  # rejects malicious tarballs.
+  # Validate names: every entry must be under
+  # memory/ and must not contain .. or absolute
+  # paths. This rejects malicious tarballs.
   BAD=$(tar tzf "$FILE" | awk '
     /^\// { print; exit }
     /(^|\/)\.\.(\/|$)/ { print; exit }
@@ -89,13 +104,34 @@ do_restore() {
     exit 1
   fi
 
+  # Validate types: only regular files and
+  # directories are allowed. A symlink entry would
+  # pass the name check but plant a link in the
+  # repo that points anywhere (and on older GNU tar
+  # can even be traversed during extraction). The
+  # verbose listing puts the type char in column 1
+  # ('-' file, 'd' dir, 'l' symlink, ...) on both
+  # GNU tar and bsdtar; symlinks additionally show
+  # as 'name -> target'.
+  BADTYPE=$(tar tzvf "$FILE" | awk '
+    substr($0, 1, 1) != "-" && substr($0, 1, 1) != "d" { print; exit }
+    / -> / { print; exit }
+  ')
+  if [ -n "$BADTYPE" ]; then
+    echo "error: archive contains an entry that is not a regular file or directory — refusing to extract" >&2
+    echo "offending entry: $BADTYPE" >&2
+    exit 1
+  fi
+
   # Refuse to overwrite existing content unless
-  # --force. An empty memory/ (only .gitkeep
-  # files) counts as empty.
+  # --force. An empty memory/ (only .gitkeep and
+  # transient files the backup excludes anyway)
+  # counts as empty.
   if [ -d memory ] && [ "$FORCE" != "--force" ]; then
     EXISTING=$(find memory -type f \
       ! -name '.gitkeep' \
       ! -name '.DS_Store' \
+      ! -name '*.lock' \
       | head -n 1)
     if [ -n "$EXISTING" ]; then
       echo "error: memory/ already contains user data (e.g. $EXISTING)" >&2
@@ -104,7 +140,19 @@ do_restore() {
     fi
   fi
 
-  tar xzf "$FILE"
+  # Extract into a temp dir first so a tarball that
+  # dies mid-extraction can't leave a half-restored
+  # memory/ behind. Only after tar succeeds does the
+  # content move into place.
+  TMPEX=$(mktemp -d "${TMPDIR:-/tmp}/heinzel-restore.XXXXXX")
+  trap 'rm -rf "$TMPEX"' EXIT
+  tar xzf "$FILE" -C "$TMPEX"
+  if [ ! -d "$TMPEX/memory" ]; then
+    echo "error: archive did not produce a memory/ tree" >&2
+    exit 1
+  fi
+  mkdir -p memory
+  cp -R "$TMPEX/memory/." memory/
   echo "restored $FILE into $REPO_DIR"
 }
 
@@ -124,7 +172,29 @@ case "$1" in
     ;;
   --restore)
     shift
-    do_restore "$1" "$2"
+    # Accept --force and the archive name in either
+    # order; never treat an option as the filename.
+    FILE=""
+    FORCE=""
+    for ARG in "$@"; do
+      case "$ARG" in
+        --force)
+          FORCE="--force"
+          ;;
+        --*)
+          echo "error: unknown option for --restore: $ARG" >&2
+          exit 2
+          ;;
+        *)
+          FILE="$ARG"
+          ;;
+      esac
+    done
+    if [ -z "$FILE" ]; then
+      echo "error: --restore requires an archive file" >&2
+      exit 2
+    fi
+    do_restore "$(resolve_path "$FILE")" "$FORCE"
     ;;
   --help|-h)
     usage

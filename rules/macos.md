@@ -26,7 +26,7 @@ Rules for macOS (Apple Silicon and Intel).
 ## Version Detection
 
 - macOS version: `sw_vers -productVersion`
-  (e.g. `15.3.1`)
+  (e.g. `XX.Y.Z`)
 - macOS build: `sw_vers -buildVersion`
 - Product name: `sw_vers -productName` (e.g. `macOS`)
 - Architecture: `uname -m` (`arm64` or `x86_64`)
@@ -41,6 +41,14 @@ Rules for macOS (Apple Silicon and Intel).
     `sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on`
   - List app rules:
     `/usr/libexec/ApplicationFirewall/socketfilterfw --listapps`
+  - Block-all state:
+    `/usr/libexec/ApplicationFirewall/socketfilterfw --getblockall`
+  - Stealth mode:
+    `/usr/libexec/ApplicationFirewall/socketfilterfw --getstealthmode`
+  - These two are the closest macOS equivalents to a
+    "default deny incoming" policy: block-all rejects
+    all incoming connections, stealth mode stops the
+    Mac from answering probes (e.g. ping).
 - **`pf`** (packet filter) exists but is rarely needed
   on typical Macs. Only use `pf` if the user has
   specific port-level filtering requirements.
@@ -54,6 +62,12 @@ Rules for macOS (Apple Silicon and Intel).
 - List available updates: `softwareupdate --list`
 - Install all updates:
   `sudo softwareupdate --install --all`
+- **Warning:** `--install --all` can pull OS updates
+  that need a restart. Always run `--list` first,
+  install OS updates only with explicit user
+  approval, and never use `--restart`/`-R` without
+  asking (CLAUDE.md: ask before reboots). Some
+  updates remain incomplete until the Mac reboots.
 - Check auto-update preferences:
   ```
   defaults read \

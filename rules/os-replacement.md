@@ -84,6 +84,14 @@ system before it is wiped. Store it in
 - SSH host keys (`/etc/ssh/ssh_host_*`) — save if
   you want to avoid host key change warnings
 
+**Never store private key material anywhere
+under the heinzel repo.** `pre-replacement.md`
+can be git-shared in team mode. Copy keys to a
+location outside the repo (e.g.
+`~/heinzel-keys/<hostname>/`) with `0600` file
+and `0700` directory permissions, and record
+only that path in the inventory file.
+
 ### Config File Backups
 
 Back up all modified config files. Use the backup
@@ -436,6 +444,11 @@ EOF
 
 ### Linux (Debian 13+ / OpenSSH 10.x) Adjustments
 
+These paths are version-specific — verify the
+binary layout on the actual target (e.g.
+`dpkg -L openssh-server | grep sshd`) before
+relying on it.
+
 OpenSSH 10.x splits sshd into three binaries.
 Copy all three into the chroot:
 
@@ -600,8 +613,34 @@ chroot $T /usr/sbin/sshd \
 
 ### Streaming the New OS Image
 
+**Verify the image before it touches the disk.**
+Fetch the published SHA256/checksum file from the
+project's official site and verify the download.
+Prefer download-then-verify when staging space
+allows:
+
+```
+fetch -o /mnt/staging/image.raw \
+  "https://url/to/image.raw"
+sha256 /mnt/staging/image.raw   # FreeBSD
+sha256sum /mnt/staging/image.raw  # Linux
+# compare against the published checksum
+```
+
+When the image must be streamed directly to disk
+(no space to stage it), verify the published
+checksum out-of-band first and tell the user the
+residual risk: a corrupted or tampered transfer
+is only detected after the disk is already
+overwritten.
+
+**POINT OF NO RETURN.** The dd overwrites the
+disk; the old OS is unrecoverable afterwards.
+Get a final explicit user confirmation
+immediately before running it.
+
 After rescue sshd is verified, connect via the
-rescue port and stream the cloud image to disk:
+rescue port and stream the image to disk:
 
 ```
 sysctl kern.geom.debugflags=0x10   # FreeBSD only
@@ -1083,11 +1122,11 @@ partition contents.
 
 ### Expected type codes by OS
 
-| Partition    | Linux          | FreeBSD          |
-|--------------|----------------|------------------|
-| Root / data  | `8300` (Linux) | `516e7cb5-...`   |
-| Swap         | `8200` (swap)  | `516e7cb5-...`   |
-| EFI          | `ef00` (EFI)   | `ef00` (EFI)     |
+| Partition    | Linux          | FreeBSD (gpart type)            |
+|--------------|----------------|---------------------------------|
+| Root / data  | `8300` (Linux) | `freebsd-zfs` or `freebsd-ufs`  |
+| Swap         | `8200` (swap)  | `freebsd-swap`                  |
+| EFI          | `ef00` (EFI)   | `efi`                           |
 
 ### How to fix
 
@@ -1145,21 +1184,57 @@ Download from https://mfsbsd.vx.sk/:
   download needed.
 - **Mini:** stripped-down with dropbear SSH.
 
+### Lock Down Access BEFORE dd'ing (MANDATORY)
+
+An unmodified mfsBSD image boots with sshd
+running, root login enabled, and the *published*
+default password `mfsroot`. On a production IP
+this is an open door: anyone scanning the
+address can log in as root for as long as the
+default password is active. Never create that
+exposure window.
+
+Before writing the image to disk, do at least
+one of:
+
+- **Bake access into the image.** mfsBSD
+  supports baked-in configuration: rebuild with
+  an authorized SSH key and a changed root
+  password (`rootpw`/`rootpw_hash` in the build
+  config), or mount the pre-built image and
+  inject `authorized_keys` plus a new password
+  hash before dd'ing. Prefer key-only access:
+  with a key baked in, the password is only a
+  console fallback.
+- **Restrict at the provider firewall.** Limit
+  SSH on that IP to the operator's address until
+  the installation is complete, then lift the
+  restriction.
+
 ### Workflow
 
 1. Build tmpfs rescue on the running Linux (sshd
    only — no QEMU needed).
-2. Download mfsBSD SE image.
-3. dd the image to `/dev/sda` from the rescue.
-4. Reboot.
-5. mfsBSD boots into RAM, starts sshd.
-6. SSH in (`root` / `mfsroot`) and run the install
-   script: partition, format, extract base+kernel,
+2. Download the mfsBSD SE image and verify it
+   against the published checksum (see
+   §"Streaming the New OS Image").
+3. Bake in an SSH key / changed root password,
+   or restrict the provider firewall (see
+   above).
+4. Confirm with the user (point of no return),
+   then dd the image to `/dev/sda` from the
+   rescue.
+5. Reboot.
+6. mfsBSD boots into RAM, starts sshd.
+7. SSH in as `root` with the key or password you
+   baked in, and run the install script:
+   partition, format, extract base+kernel,
    configure, set up EFI bootloader.
-7. Reboot into the installed FreeBSD.
+8. Reboot into the installed FreeBSD.
 
-Step 6 can be fully scripted from the local machine
-using `sshpass` or SSH with password authentication.
+Step 7 can be fully scripted from the local
+machine over SSH key authentication (bake the
+key into the image — step 3).
 
 ### AutoBSD (repeatable deployments)
 

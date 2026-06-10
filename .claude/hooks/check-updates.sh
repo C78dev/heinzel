@@ -53,13 +53,17 @@ if [ -f VERSION ]; then
   OLD_VERSION=$(cat VERSION)
 fi
 
-# Pull latest changes.
-OUTPUT=$(git pull --quiet 2>&1)
+# Pull latest changes. --ff-only: a diverged local
+# main should fail loudly here, never produce a
+# silent merge commit.
+OUTPUT=$(git pull --ff-only --quiet 2>&1)
 PULL_STATUS=$?
 
 if [ $PULL_STATUS -ne 0 ]; then
   echo "heinzel auto-update failed: $OUTPUT"
-  echo "Run 'git status' to inspect local changes."
+  echo "Likely causes: local changes, local commits on a"
+  echo "diverged main, or no network. Run 'git status' to"
+  echo "inspect."
   exit 0
 fi
 
@@ -87,9 +91,13 @@ if [ "$OLD_VERSION" != "$NEW_VERSION" ] \
   # Extract changelog section for the new version.
   if [ -f CHANGELOG.md ]; then
     # Print lines between "## $NEW_VERSION" and the
-    # next "## " heading (or end of file).
-    sed -n "/^## ${NEW_VERSION}/,/^## /{/^## ${NEW_VERSION}/d;/^## /d;p;}" \
-      CHANGELOG.md | sed '/^$/d'
+    # next "## " heading (or end of file). Compare
+    # the whole second field so "## 2.8.0" does not
+    # also match "## 2.8.0-rc1".
+    awk -v ver="$NEW_VERSION" '
+      /^## / { if (insec) exit; insec = ($2 == ver); next }
+      insec && NF { print }
+    ' CHANGELOG.md
   fi
 
   # Warn on major version change.

@@ -14,6 +14,11 @@ To determine which to use, check the OS version from
 `/etc/os-release`. RHEL/CentOS 7 uses `yum`; everything
 newer uses `dnf`.
 
+If the host is on the `yum` branch (RHEL/CentOS 7
+era), check its support status via web search — it
+is likely past EOL, which is itself a **CRITICAL**
+finding. See `rules/version-check.md`.
+
 ## Version Detection
 
 - `/etc/redhat-release` — distro and version string
@@ -27,12 +32,23 @@ newer uses `dnf`.
 - Add rule: `firewall-cmd --permanent --add-service=http`
 - Reload: `firewall-cmd --reload`
 - If `firewalld` is not running, flag it to the user.
-- Verify the default zone drops unsolicited traffic:
-  `firewall-cmd --get-default-zone` (should be `public`).
-  Then `firewall-cmd --info-zone=public` — the target
-  should be `default` (which means reject). If the zone
-  target is `ACCEPT`, fix with
-  `firewall-cmd --permanent --zone=public
+- **Critical:** before `systemctl start firewalld` on
+  a remote host, verify the `ssh` service is in the
+  active/default zone's permanent config:
+  `firewall-cmd --permanent --zone=<zone>
+  --list-services`. Add it if missing:
+  `firewall-cmd --permanent --zone=<zone>
+  --add-service=ssh`. Starting `firewalld` without it
+  cuts off the SSH session immediately.
+- Note the default zone:
+  `firewall-cmd --get-default-zone`. A custom or
+  renamed default zone is legitimate — what matters
+  is the zone's behavior, not its name. Verify it
+  rejects unsolicited incoming traffic:
+  `firewall-cmd --info-zone=<zone>` — the target
+  should be `default` (which means reject). If the
+  zone target is `ACCEPT`, fix with
+  `firewall-cmd --permanent --zone=<zone>
   --set-target=default` and `firewall-cmd --reload`.
 
 ## Automatic Security Updates
@@ -42,6 +58,8 @@ newer uses `dnf`.
 - Check if active:
   `systemctl status dnf-automatic-install.timer`
 - On RHEL 7/CentOS 7: `yum-cron` instead
+- If not installed or not enabled, flag it to the
+  user.
 
 ## Service Manager
 

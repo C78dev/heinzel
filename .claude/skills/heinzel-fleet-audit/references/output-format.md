@@ -43,6 +43,31 @@ the eye lands on it:
 | ! Automatic-Reboot-Time              | (unset) | (unset) | 05:30   |
 ```
 
+## Needs-root cells
+
+Probes that could not run for lack of privileges (see
+"Privilege handling" in `references/probes.md`) return the
+sentinel `unknown(needs-root)`. Render those cells as
+`needs root`:
+
+```
+| PermitRootLogin     | prohibit-password | needs root |
+```
+
+Needs-root cells are **excluded from drift detection**: an
+unreadable value is not a disagreement. Never mark such a
+row with the `!` prefix or list it in "Drift detected"
+solely because one cell reads `needs root` — the other
+hosts' values may still drift against each other. Instead,
+mention the affected hosts once in a one-line note under
+the table, e.g.:
+
+```
+host2: sshd and firewall state unreadable (no root, no
+passwordless sudo) — re-run with a privileged user for
+full coverage.
+```
+
 ## Drift detected
 
 After all tables, a numbered list. Each entry: which hosts

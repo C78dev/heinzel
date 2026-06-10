@@ -259,9 +259,10 @@ bin/heinzel-backup --restore <file.tar.gz>
 ```
 
 Refuses to overwrite existing `memory/` content
-unless `--force` is passed. The archive is
-validated — all entries must live under `memory/` —
-before any files are written.
+unless `--force` is passed. The archive is validated
+before any files are written: all entries must live
+under `memory/`, and symlink or hardlink entries are
+rejected.
 
 ### Team mode note
 
@@ -349,7 +350,8 @@ Heinzel probes unattended-upgrades, sshd effective config,
 firewall posture, MTA, time sync, and auto-reboot behaviour
 on each host in `memory/servers/`, then renders a
 side-by-side table that highlights where servers disagree.
-Read-only — the skill never modifies a host. Use it after
+It makes no configuration changes on any host (it only
+writes one audit-trail line to each journal). Use it after
 fixing a config bug on one server to find which others
 carry the same bug, or as a periodic consistency check.
 
@@ -433,8 +435,9 @@ skills at `.claude/skills/*/SKILL.md`. The `rules/`
 directory is picked up via prose references in
 `CLAUDE.md`, so any other terminal AI tool that reads
 project files and runs shell commands will also handle
-the rule layer — only the on-demand skills (currently
-housekeeping and security) need Skills-aware tooling.
+the rule layer — only the on-demand skills
+(housekeeping, security audit, email reports, fleet
+audit) need Skills-aware tooling.
 
 OpenCode note: if you've set
 `OPENCODE_DISABLE_CLAUDE_CODE=1`, OpenCode stops
@@ -520,7 +523,7 @@ entering the interactive UI.
 Use the `-p` flag to pass a prompt directly:
 
 ```bash
-$ claude --dangerously-skip-permissions \
+$ claude --permission-mode auto \
   -p "What OS is installed on \
   server1.example.com? Login as root."
 **server1.example.com** is running **Debian 11
@@ -532,7 +535,7 @@ Note: Debian 11 reached end of life in August
 2024 and only receives long-term support (LTS)
 until August 2026. You may want to plan an
 upgrade to Debian 12 (Bookworm) before then.
-$ claude --dangerously-skip-permissions \
+$ claude --permission-mode auto \
   -p "Upgrade server1.example.com to Debian 12. \
   I have a backup. Don't ask me any questions. \
   Just do it. Give me a report afterwards."
@@ -599,38 +602,62 @@ opencode run --attach http://localhost:4096 \
   "Check disk usage on web1.example.com"
 ```
 
-## About `--dangerously-skip-permissions` (Claude Code)
+## Fewer Prompts: Auto Mode (Claude Code)
 
 By default Claude Code asks for your approval before
 every tool call — every SSH command, every file read,
-every write. The `--dangerously-skip-permissions` flag
-disables these prompts so Claude runs everything
-without asking.
+every write. That's the safest setting and the right
+one when you're learning. But for batch work it gets
+impractical: you can't sit and approve 200 prompts
+during an unattended upgrade.
 
-The name is intentional: **it is dangerous.** You give
-up the ability to review each command before it hits a
-live server. On the other hand, it makes scripting and
-batch work practical — you can't sit and approve 200
-prompts during an unattended upgrade.
+For that, use **auto mode**
+(`--permission-mode auto`). Instead of asking you
+about everything, a background safety check reviews
+each action: routine commands run without a prompt,
+risky ones still stop and ask. Press Shift+Tab in the
+interactive UI to cycle modes, or pass the flag for
+scripted use:
 
-**When it makes sense:**
+```bash
+claude --permission-mode auto \
+  -p "Run housekeeping on server1.example.com"
+```
 
-- Non-interactive / scripted use
-  (`claude --dangerously-skip-permissions -p "..."`)
-- Read-only tasks (checking OS, gathering info)
-- Disposable environments (dev VMs, containers)
+(Auto mode is a newer Claude Code feature — on
+Team/Enterprise plans an admin may need to enable
+it. See the
+[permission modes docs](https://code.claude.com/docs/en/permission-modes)
+for details and alternatives.)
 
-**When to avoid it:**
+For locked-down scripting and CI, the strictest
+option is an explicit allowlist:
+`--permission-mode dontAsk` combined with
+`--allowedTools` or `permissions.allow` rules in
+`.claude/settings.json` — only pre-approved commands
+run, everything else is denied.
+
+The old `--dangerously-skip-permissions` flag still
+exists, but the name says it all: it removes *all*
+review with no safety check in its place — including
+any protection against malicious text in server
+output. If you use it at all, use it only in
+disposable environments (dev VMs, containers), never
+on production servers.
+
+**When to stay with the default ask-everything mode:**
 
 - First time working on a production server
 - When you don't trust Heinzel or don't understand it
 - Any time you want to understand what's happening
   step by step
 
-Without the flag, Heinzel's safety rules still apply —
-Heinzel still backs up configs, tests before applying,
-and follows least privilege. The flag only removes
-*your* approval step, not the built-in guardrails.
+Whatever mode you pick, Heinzel's own safety rules
+still apply — Heinzel still backs up configs, tests
+before applying, asks before destructive actions, and
+follows least privilege. Permission modes only change
+how often *you* are asked, not the built-in
+guardrails.
 
 ## Safety & Guardrails
 
@@ -886,6 +913,8 @@ rules/                 — Upstream rule files (git-tracked)
   directory-copy.md    — Cross-server directory copy checks
   port-check.md        — Port conflict detection before
                          starting services
+  service-class-check.md — One web server / database /
+                         MTA per host unless approved
   service-reload.md    — Service reload/restart policy
                          (auto-proceed rules + opt-out)
   version-check.md     — Proactive stable version checking
@@ -920,10 +949,10 @@ memory/                — All your user state (gitignored
 ## Why the Name Heinzel?
 
 The name comes from the
-[Heinzelmannchen](https://en.wikipedia.org/wiki/Heinzelm%C3%A4nnchen)
+[Heinzelmännchen](https://en.wikipedia.org/wiki/Heinzelm%C3%A4nnchen)
 — the helpful gnomes of Cologne from German folklore.
 Every night, while the people of Cologne slept, the
-Heinzelmannchen crept out and did all the work: baking
+Heinzelmännchen crept out and did all the work: baking
 bread, building houses, finishing whatever was left
 undone. An invisible helper that quietly takes care of
 things — a fitting name for a system administration

@@ -14,12 +14,22 @@ connection, not just the first of the day.
 
 ## How to check
 
-**systemd (Linux, FreeBSD with systemd):**
+**systemd (Linux):**
 
 ```
 journalctl -t heinzel --since "7 days ago" \
   --no-pager -q 2>/dev/null
 ```
+
+As a non-root user outside the `systemd-journal` /
+`adm` groups, `journalctl` silently shows only the
+user's own entries. When connected as non-root, try
+`sudo -n journalctl -t heinzel ...` first. If sudo
+is unavailable, run the command without `-q` and
+watch for the "not seeing messages from other
+users" hint. When visibility is limited, tell the
+user the activity check may be incomplete — do not
+stay silent.
 
 **macOS:**
 
@@ -28,15 +38,21 @@ log show --predicate 'senderImagePath CONTAINS "logger"' \
   --info --last 7d 2>/dev/null | grep heinzel
 ```
 
-**FreeBSD without systemd:**
+**FreeBSD:**
 
 ```
-grep heinzel /var/log/messages 2>/dev/null | \
-  tail -20
+grep -h heinzel /var/log/messages.0 \
+  /var/log/messages 2>/dev/null | tail -20
 ```
 
-If the command fails or returns nothing, skip
-silently — no activity to report.
+Note: this shows the last 20 matches, not a strict
+7-day window, and only reaches one rotation back
+(`messages.0`). Older rotated logs are usually
+compressed; mention the limitation if relevant.
+
+If the command fails or returns nothing — and
+journal visibility is not limited (see above) —
+skip silently: no activity to report.
 
 ## What to show
 

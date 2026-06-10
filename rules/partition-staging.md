@@ -42,6 +42,26 @@ Combine both techniques for maximum flexibility:
 
 ## Prerequisites
 
+### Safety Gates (MANDATORY)
+
+Before any step that modifies the partition
+table:
+
+1. **Verified backup.** Confirm the user has a
+   current backup or snapshot of **all** data on
+   the disk — not just the partition being
+   changed. If ZFS, suggest `zfs snapshot` plus
+   a copy off the machine.
+2. **Approved target layout.** Write out the
+   planned partition layout and get the user's
+   explicit approval before touching anything.
+3. **Confirm every partition-table command.**
+   Per CLAUDE.md, modifying the partition table
+   is an absolute taboo without explicit user
+   request. Ask before EVERY `gpart delete`,
+   `gpart add`, `sgdisk`, `fdisk`, or equivalent
+   write command — not once per session.
+
 ### RAM Check
 
 Before disabling swap, verify there is enough
@@ -98,8 +118,10 @@ the former swap partition:
 mkfs.ext2 /dev/sdXn
 mount /dev/sdXn /mnt/staging
 
-# FreeBSD (ext2 for cross-OS compatibility)
-newfs /dev/vtbd0p2         # UFS
+# FreeBSD — UFS (Linux cannot easily mount UFS;
+# if Linux must read the staging data, create
+# ext2 instead, e.g. via sysutils/e2fsprogs)
+newfs /dev/vtbd0p2
 mount /dev/vtbd0p2 /mnt/staging
 ```
 
@@ -111,6 +133,13 @@ scenarios. Skip to "Restore Swap" when done.
 When the staging partition alone is too small,
 or you need to free the *main* partition, use
 the filesystem's hot add/remove capability.
+
+Removing the original device shifts all data
+onto the former swap partition — a single point
+of failure. Confirm with the user before each
+remove command, and verify pool/VG health before
+and after (`zpool status`, `pvs`, `btrfs device
+stats`).
 
 ### ZFS
 
@@ -182,7 +211,23 @@ remaining devices automatically.
 
 After freeing the main partition via hot-migration,
 delete it and create new partitions for the
-replacement OS. For example on FreeBSD with GPT:
+replacement OS.
+
+**POINT OF NO RETURN.** `gpart delete` (or the
+equivalent) destroys the original partition.
+Before running it:
+
+1. **Verify data integrity on the staging
+   device.** `zpool status` must be clean; run
+   `zpool scrub` and wait for it to finish
+   without errors. On LVM/btrfs, compare sizes
+   or checksums of key paths against the
+   original.
+2. **Get a final explicit user confirmation**
+   for the delete itself — even though earlier
+   steps were already approved.
+
+For example on FreeBSD with GPT:
 
 ```
 gpart delete -i 3 vtbd0       # remove old root

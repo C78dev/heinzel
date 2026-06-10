@@ -224,8 +224,10 @@ Turning off unattended-upgrades (or equivalent) to
 the affected package.
 
 **--force on package managers**
-`apt --force-yes`, `rpm --force`, etc. bypass
-conflict checks that exist for a reason.
+`apt-get --allow-remove-essential` /
+`--allow-downgrades` (formerly `--force-yes`),
+`rpm --force`, etc. bypass conflict checks that
+exist for a reason.
 → Understand the conflict first. Resolve it
 properly.
 

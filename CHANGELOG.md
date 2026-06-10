@@ -1,5 +1,139 @@
 # Changelog
 
+## 2.9.0 — 2026-06-10
+
+Repo-wide rules audit: every rule file, skill, and helper
+script was reviewed for contradictions, security gaps, and
+beginner traps, and the findings fixed.
+
+### Security fixes
+
+- `rules/freebsd.md`: the "minimal safe pf.conf" example
+  relied on the `egress` interface group; on hosts where
+  that group is missing or empty, the SSH pass rule
+  matched nothing and `block in all` cut off SSH the
+  moment the rules loaded. The example now uses an
+  explicit interface macro. Also new: mandatory
+  `pfctl -nf` parse test before any load, and an
+  `at`-scheduled `pfctl -d` safety net for rule changes
+  over SSH.
+- `rules/os-replacement.md`: the mfsBSD workflow left a
+  production IP running sshd with root and the published
+  default password during the whole install window. Now
+  mandatory: bake an SSH key / changed password into the
+  image or restrict access at the provider firewall
+  before dd'ing. Downloaded images must be checksum-
+  verified before any disk write, with an explicit point
+  of no return. Private key material (TLS keys, SSH host
+  keys) must never be saved under the repo, where team
+  mode could git-share it.
+- `bin/heinzel-backup --restore`: archive validation only
+  checked entry names, so a crafted tarball could plant a
+  symlink pointing anywhere on the filesystem. Restore
+  now rejects symlink/hardlink entries, extracts to a
+  temp dir first (no half-restored `memory/` on a
+  truncated archive), and resolves relative paths against
+  the directory you invoked it from.
+- `rules/access-control.md`: blacklisted hostnames were
+  only string-matched, so a DNS alias of a blacklisted
+  host slipped through. Listed hostnames are now resolved
+  and compared by IP as well; DNS-failure behaviour is
+  defined (fall back to string match and tell the user).
+- `rules/cloud-image.md`: built images no longer allow
+  root SSH login by password (`PermitRootLogin
+  prohibit-password`; the root password is console-only).
+- `rules/anomaly-detection.md`: suspected prompt
+  injections are now quoted as labeled untrusted data
+  instead of echoed verbatim, and a new section forbids
+  interpolating unsanitized server output into shell
+  command lines.
+
+### Guardrails
+
+- `rules/partition-staging.md` and `rules/dual-boot.md`
+  gained mandatory safety gates: verified backup,
+  user-approved layout, data-integrity verification, and
+  a marked POINT OF NO RETURN with explicit confirmation
+  before any partition table or pool is destroyed.
+- Firewall SSH-lockout warnings are now consistent across
+  all OS families: `rules/rhel.md` and `rules/suse.md`
+  warn to verify the `ssh` service is in the firewalld
+  zone before starting the firewall (previously only
+  Debian and FreeBSD had lockout warnings).
+- Unattended updates are security-only everywhere:
+  `rules/suse.md` now recommends
+  `zypper patch --category security` instead of nightly
+  full upgrades; `rules/freebsd.md` defaults to a
+  notify-only cron job instead of `pkg upgrade -y`.
+- `rules/deployment.md`: fixed the broken "nologin +
+  SSH `command=`" recipe (forced commands run through the
+  login shell, so nologin refuses); now pairs a minimal
+  shell with `no-pty,no-port-forwarding,...` key options.
+- `rules/service-reload.md`: resolved an internal
+  contradiction — reloads auto-proceed only when a config
+  test exists and passes; no known test means ask.
+- `rules/macos.md`: warns that `softwareupdate
+  --install --all` can pull OS updates needing a restart;
+  list first, never `--restart` without asking.
+
+### Fixes
+
+- `rules/debian.md`: pinned-package verification used a
+  command that never matches (and the banned `apt`);
+  now `apt-cache policy`. Pinning warning added (frozen
+  packages get no security updates). Unattended-upgrades
+  check now names `20auto-upgrades` and the
+  `apt-daily-upgrade.timer`. New dist-upgrade pitfall.
+- `rules/suse.md`: fixed `zypper --dry-run update`
+  argument order.
+- `rules/mise.md`: apt repo line no longer hardcodes
+  `arch=amd64` (broke arm64 hosts); shell setup is
+  idempotent, backs up `.bash_profile`, and covers zsh
+  (`~/.zshenv`) and FreeBSD sh/csh; hardcoded runtime
+  versions replaced with web-search-first placeholders.
+- `rules/dns-aliases.md`: resolution now filters for A
+  records (a CNAME chain no longer breaks alias detection
+  and the blacklist IP match); round-robin DNS no longer
+  false-alarms the IP verification.
+- `rules/activity-check.md`: no more silent blindness as
+  non-root — tries `sudo -n journalctl` and tells the
+  user when journal visibility is limited. Dropped the
+  fictional "FreeBSD with systemd".
+- `rules/privilege-escalation.md`: local mode skips the
+  root-SSH fallback; sudo probe records why sudo is
+  unusable instead of guessing.
+- `rules/os-detection.md`: maps derivatives via
+  `ID`/`ID_LIKE` (Ubuntu→debian, Rocky/Alma→rhel, …) and
+  defines behaviour for unmatched distros.
+- `rules/freebsd.md`: removed corrupted duplicate text at
+  the end of the file; fixed a hyphen-broken flag.
+- `rules/version-check.md`: removed the non-existent
+  `ollama update` command from an example.
+- `bin/heinzel-update` and the session-start hook now
+  pull with `--ff-only` (a diverged local `main` fails
+  loudly instead of creating a silent merge commit) and
+  print friendly guidance on pull failures.
+- Fleet-audit probes distinguish "needs root" from
+  "absent" — an unreadable ufw is no longer reported as
+  "no firewall" drift. The skill's "read-only" claim was
+  corrected (it writes one audit-trail journal line per
+  host).
+- Housekeeping "pending security updates" now counts
+  security updates instead of all upgrades.
+- `heinzel-housekeeping` and `heinzel-security` state
+  their FreeBSD scope limits explicitly instead of
+  silently skipping; the security skill now rates a
+  missing Linux firewall CRITICAL (was WARN), matching
+  housekeeping.
+- `heinzel-email` runs the mandatory service-class
+  conflict check before installing an MTA.
+- README: the `--dangerously-skip-permissions` section
+  was replaced with Claude Code's auto mode
+  (`--permission-mode auto`) — prompt-free batch work
+  with a background safety check instead of no checks at
+  all; allowlist-based `dontAsk` documented for CI. Also
+  fixed stale skill lists and the backup-restore claims.
+
 ## 2.8.0 — 2026-05-19
 
 - New skill `heinzel-fleet-audit`: read-only side-by-side

@@ -90,13 +90,22 @@ support shrinking, so a migration is required.
 3. **Migrate data:** `zfs send -R pool@snap |
    zfs recv temppool`
 4. **Reboot into the temporary pool.**
-5. **Destroy the original pool and repartition.**
-6. **Create the new (smaller) pool.**
-7. **Migrate back:** `zfs send -R temppool@snap |
+5. **Verify the copy (POINT OF NO RETURN).**
+   Confirm the migrated data is complete and
+   healthy before destroying anything: compare
+   space usage (`zfs list` on both pools), run
+   `zpool status` and a `zpool scrub` on the
+   temporary pool, and spot-check key paths.
+   Then get explicit user confirmation —
+   destroying the original pool cannot be
+   undone.
+6. **Destroy the original pool and repartition.**
+7. **Create the new (smaller) pool.**
+8. **Migrate back:** `zfs send -R temppool@snap |
    zfs recv newpool`
-8. **Reboot into the new pool.**
-9. **Destroy the temporary pool** and reclaim its
-   partition for the second OS.
+9. **Reboot into the new pool.**
+10. **Destroy the temporary pool** and reclaim
+    its partition for the second OS.
 
 ### Pitfalls
 
@@ -114,10 +123,6 @@ support shrinking, so a migration is required.
 - **Boot environment activation:** After `zfs recv`,
   activate the correct boot environment with
   `bectl activate`.
-
-Reference: see `partitioning-howto.md` in
-auto-memory for the exact command sequence used
-on the UTM ARM64 setup.
 
 ## Filesystem Choice
 
@@ -241,11 +246,23 @@ attack" because the key for the IP changed.
 
 Options:
 - Accept the new key when prompted.
-- Use `ssh -o StrictHostKeyChecking=no
-  -o UserKnownHostsFile=/dev/null` for quick
-  switches (less secure, acceptable on local VMs).
-- Maintain separate `known_hosts` entries per OS
-  (impractical with shared IP).
+- **Proper fix:** define one alias per OS in
+  `~/.ssh/config`, each with its own known-hosts
+  file. This works despite the shared IP:
+  ```
+  Host vm-linux
+      HostName 192.0.2.10
+      UserKnownHostsFile ~/.ssh/known_hosts.vm-linux
+  Host vm-freebsd
+      HostName 192.0.2.10
+      UserKnownHostsFile ~/.ssh/known_hosts.vm-freebsd
+  ```
+- `ssh -o StrictHostKeyChecking=no
+  -o UserKnownHostsFile=/dev/null` disables
+  man-in-the-middle protection entirely. This is
+  acceptable ONLY for local throwaway VMs —
+  never for any host reachable from a network
+  you don't fully control.
 
 This is expected behavior, not a security issue,
 as long as you initiated the OS switch yourself.

@@ -3,7 +3,8 @@
 ## Linux
 
 Verify a firewall is installed, active, and the default incoming
-policy is deny/drop.
+policy is deny/drop. An inactive or missing firewall on a Linux
+server is **CRITICAL** — aligned with the housekeeping severity.
 
 ### Debian/Ubuntu (ufw)
 
@@ -11,7 +12,7 @@ policy is deny/drop.
 ufw status verbose
 ```
 
-- Not installed or inactive → **WARN** "No active firewall"
+- Not installed or inactive → **CRITICAL** "No active firewall"
 - Active but default incoming is not `deny` → **WARN** "Firewall
   default incoming policy is not deny"
 - Active and default deny → OK
@@ -29,7 +30,7 @@ Then check the default zone's target:
 firewall-cmd --zone=<zone> --get-target
 ```
 
-- Not running → **WARN** "No active firewall"
+- Not running → **CRITICAL** "No active firewall"
 - Zone target is `ACCEPT` → **WARN** "Default zone target is
   ACCEPT (allows all incoming)"
 - Zone target is `default` (reject/drop) → OK

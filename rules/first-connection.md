@@ -18,9 +18,11 @@ moment") — don't skip.
    `rules/access-control.md`.
 2. **Read-only check.** Switch to read-only mode if
    listed. See `rules/access-control.md`.
-3. **DNS alias detection** (only when no
-   `memory/servers/<hostname>/` exists yet). See
-   `rules/dns-aliases.md`.
+3. **DNS check.** New hostname (no
+   `memory/servers/<hostname>/` yet): run alias
+   detection. Known hostname: verify the current IP
+   still matches the `- IP:` field in server memory.
+   See `rules/dns-aliases.md` for both.
 4. **SSH user lookup** (first connection only). See
    `rules/ssh-user.md`.
 5. **OS detection.** See `rules/os-detection.md`.

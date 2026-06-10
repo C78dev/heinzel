@@ -262,17 +262,24 @@ If `efibootmgr` is not available in the rescue
 environment, rely on the fallback path and verify
 that the firmware finds it.
 
-**When relying on the fallback path:** delete the
-old OS's EFI directory (e.g. `EFI/debian/`) so
-the firmware's existing boot entries fail
-gracefully and fall through to the fallback. If
-old EFI files remain, the firmware may try to
-boot the old boot loader (which will fail because
-the root partition is gone) and may not fall
-through to the fallback depending on
-implementation. Clean the EFI partition from
-within the QEMU install shell before shutting
-down QEMU.
+**When relying on the fallback path:** deleting
+the old OS's EFI directory (e.g. `EFI/debian/`)
+makes the firmware's stale boot entries fail
+fast and fall through to the fallback. This is
+acceptable ONLY when the old root filesystem has
+already been destroyed — there is nothing left
+to fall back to — and even then, ask the user
+first (see §"Safety"). While the old OS is still
+intact and bootable, keep its loader; it *is*
+the fallback (see `rules/os-replacement.md`
+§"Boot Configuration Safety"). Once the old root
+is gone, leftover EFI files are a hazard: the
+firmware may try the old boot loader (which
+fails because the root partition is gone) and
+may not fall through to the fallback depending
+on implementation. In that case, clean the EFI
+partition from within the QEMU install shell
+before shutting down QEMU.
 
 ## Memory Convention
 

@@ -50,32 +50,58 @@ or last session, flag it:
 ## Pending Security Updates
 
 Use the distro-specific command from the loaded `rules/<family>.md`
-file.
+file. Report two numbers where cheap: total pending upgrades and
+the security-only subset. Do not present the total as "security
+updates" — that overstates the finding.
+
+The security-filter syntax varies by distro release. Per "Verify
+Before Running" in `CLAUDE.md`, verify the flags with `--help` on
+the target before relying on them.
 
 **Debian/Ubuntu:**
 
 ```bash
 apt-get update -qq 2>/dev/null
+
+# Total pending upgrades.
 apt-get --just-print upgrade 2>/dev/null \
   | grep -c "^Inst"
+
+# Security-only subset: filter the Inst lines for
+# security origins (Debian-Security on older
+# releases, <codename>-security on newer ones,
+# <codename>-security on Ubuntu).
+apt-get --just-print upgrade 2>/dev/null \
+  | grep "^Inst" \
+  | grep -ciE "debian-security|[a-z]+-security"
 ```
 
 **RHEL/CentOS/Fedora:**
 
 ```bash
+# Total pending updates.
 dnf check-update --quiet 2>/dev/null \
+  | grep -c "^\S"
+
+# Security-only subset.
+dnf updateinfo --security 2>/dev/null
+dnf check-update --security --quiet 2>/dev/null \
   | grep -c "^\S"
 ```
 
 **SUSE:**
 
 ```bash
+# Total pending updates.
 zypper --quiet list-updates 2>/dev/null \
   | grep -c "^v"
+
+# Security-only subset.
+zypper list-patches --category security 2>/dev/null
 ```
 
 - **WARN** if any security updates are pending
-- Report the count
+- Report both counts (total pending and security-only)
 
 ## Automatic Security Updates
 

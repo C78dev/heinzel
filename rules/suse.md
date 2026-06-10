@@ -9,7 +9,9 @@ Enterprise Server (SLES).
 - Update repos: `zypper refresh`
 - Upgrade all: `zypper update`
 - Install: `zypper install <package>`
-- Dry-run before upgrading: `zypper --dry-run update`
+- Dry-run before upgrading: `zypper update --dry-run`
+  (`--dry-run` goes after the command — verify with
+  `zypper help update` first)
 - Non-interactive: `zypper --non-interactive install <pkg>`
 
 ## Version Detection
@@ -26,6 +28,14 @@ Enterprise Server (SLES).
 - Reload: `firewall-cmd --reload`
 - Some systems may use SuSEfirewall2 (older) — if so,
   flag it to the user as it's deprecated.
+- **Critical:** before `systemctl start firewalld` on
+  a remote host, verify the `ssh` service is in the
+  active/default zone's permanent config:
+  `firewall-cmd --permanent --zone=<zone>
+  --list-services`. Add it if missing:
+  `firewall-cmd --permanent --zone=<zone>
+  --add-service=ssh`. Starting `firewalld` without it
+  cuts off the SSH session immediately.
 - Verify the default zone drops unsolicited traffic:
   `firewall-cmd --get-default-zone` (should be `public`).
   Then `firewall-cmd --info-zone=public` — the target
@@ -36,9 +46,16 @@ Enterprise Server (SLES).
 
 ## Automatic Security Updates
 
-- openSUSE/SLES can use a cron job or systemd timer with
-  `zypper --non-interactive update --auto-agree-with-licenses`
-- SLES may also use `yast2` for auto-update configuration.
+- Prefer **security-only** patching via a cron job or
+  systemd timer, e.g.
+  `zypper --non-interactive patch --category security`
+  — verify the exact syntax with `zypper help patch`
+  first; it varies between versions.
+- Do **not** schedule a full
+  `zypper --non-interactive update` — that upgrades
+  every package nightly, not just security fixes.
+- On SLES, YaST Online Update is the supported
+  mechanism for configuring automatic updates.
 - If no auto-update is configured, flag it to the user.
 
 ## Service Manager
@@ -56,7 +73,8 @@ Enterprise Server (SLES).
 
 - SUSE uses YaST for system configuration. Prefer command-
   line tools for scripted operations, but be aware that YaST
-  may have configured things in non-standard ways.
+  may have configured things in non-standard ways. Check
+  existing config before assuming defaults.
 
 ## Directory Conventions
 
@@ -71,8 +89,6 @@ Enterprise Server (SLES).
   versions change frequently.
 - openSUSE Leap and SLES share the same base and are more
   stable/predictable.
-- The `zypper` package manager is interactive by default —
-  always use `--non-interactive` for scripted operations.
 
 ## Common Pitfalls
 
@@ -84,8 +100,4 @@ Enterprise Server (SLES).
 - `firewalld` is shared with RHEL but zone defaults
   may differ. Check `firewall-cmd --get-active-zones`
   before making changes.
-- YaST may have configured things in non-standard
-  ways. Check existing config before assuming defaults.
-- Tumbleweed is rolling release — package versions
-  and behavior change frequently. Leap/SLES are
-  stable.
+- YaST quirks: see the YaST section above.

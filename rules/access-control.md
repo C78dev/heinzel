@@ -5,18 +5,20 @@ list. Both use the same file format and lookup logic.
 
 ## Shared File Format
 
-Plain list — one hostname or IP per line. Lines
-starting with `#` and blank lines are ignored.
-Entries can be a hostname (matched against the target
+Plain list — one entry per line. An optional leading
+`- ` bullet is allowed and ignored. Everything after
+`#` is a comment; blank lines are ignored. Entries
+can be a hostname (matched against the target
 hostname) or an IP address (matched against the
-resolved IP). Files are created on first need — do
-not pre-create them.
+resolved IP). IPs are the most robust form — prefer
+them. Files are created on first need — do not
+pre-create them.
 
 ```markdown
 # Example
 
-- server.example.com
-- 203.0.113.50
+- server.example.com   # bullet optional
+203.0.113.50
 ```
 
 The user can add or remove entries by asking heinzel
@@ -29,9 +31,20 @@ For both files, the check is:
 1. If the file does not exist, skip (nothing to
    check).
 2. Is the target hostname listed?
-3. Resolve the IP (`dig +short` / python3 fallback,
-   same as DNS alias detection). Is the resolved IP
+3. Resolve the target's IP(s) (A-record query /
+   python3 fallback, same as DNS alias detection —
+   see `rules/dns-aliases.md`). Is a resolved IP
    listed?
+4. Resolve each listed hostname to its IP(s) the
+   same way and compare against the target's
+   IP(s). This catches DNS aliases of listed
+   hosts that a plain string match would miss.
+
+If DNS resolution fails (no `dig`/`python3`, or DNS
+is down), fall back to exact string matching and
+tell the user explicitly that the IP-level check
+could not be performed. Err on the side of caution
+for anything ambiguous.
 
 ## Server Blacklist
 
@@ -66,7 +79,9 @@ read-only does not block access.
 - All read-only operations: SSH inspection, status
   commands, reading files and logs
 - Housekeeping checks and security audits
-- Local memory and changelog updates
+- Local memory and changelog updates, including
+  creating `todo.md` (a purely local file — only
+  the remote host is read-only)
 - `logger -t heinzel` entries on the server
 
 **Blocked in read-only mode:**
@@ -75,7 +90,6 @@ read-only does not block access.
 - Config file edits on the server
 - Firewall, user/group, or file write changes
 - Reboots
-- Creating `todo.md`
 
 **Deferred modifications:** when a blocked action is
 needed, announce it briefly and continue with

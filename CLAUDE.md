@@ -292,7 +292,8 @@ Only when the user asks. The `heinzel-fleet-audit` skill in
 (unattended-upgrades, sshd effective config, firewall
 posture, MTA, time sync, auto-reboot behaviour) across all
 servers in `memory/servers/` and surfaces silent drift in a
-side-by-side table. Read-only — never modifies a host. Use
+side-by-side table. Makes no configuration changes on any
+host (only an audit-trail journal line per host). Use
 after fixing a config bug on one server to find which
 others carry the same bug, or as a periodic consistency
 check across the fleet.

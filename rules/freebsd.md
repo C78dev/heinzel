@@ -12,11 +12,15 @@ Rules for FreeBSD (all versions).
 - Search: `pkg search <name>`
 - Installed packages: `pkg info`
 - Audit for vulnerabilities: `pkg audit -F`
+- Check which pkg branch the host uses (`quarterly`
+  or `latest`) in `/etc/pkg/FreeBSD.conf` before
+  installing, and stick to the branch the host
+  already uses (CLAUDE.md: stable release tracks).
 
 ## Version Detection
 
 - `freebsd-version` — base system version
-  (e.g. `15.0-RELEASE`)
+  (e.g. `N.N-RELEASE`)
 - `freebsd-version -k` — running kernel version
 - `uname -r` — kernel release string
 - `uname -m` — architecture (e.g. `amd64`,
@@ -36,11 +40,30 @@ Rules for FreeBSD (all versions).
   without an SSH rule locks you out immediately.
 - Minimal safe `/etc/pf.conf`:
   ```
+  ext_if = "vtnet0"  # set to the real interface, see ifconfig
   set skip on lo0
   block in all
   pass out all keep state
-  pass in on egress proto tcp to port 22
+  pass in on $ext_if proto tcp to port 22
   ```
+- Do **not** rely on the `egress` interface group in
+  rules unless `ifconfig -g egress` shows it is
+  populated on this host. If the group is missing or
+  empty, a `pass in on egress` rule matches nothing
+  and `block in all` kills SSH the moment the rules
+  load.
+- **Mandatory before any load:** the parse-only
+  config test `pfctl -nf /etc/pf.conf` must pass
+  first.
+- When changing pf rules over SSH, schedule a safety
+  net before loading, e.g.:
+  ```
+  echo "pfctl -d" | at now + 5 minutes
+  ```
+  If the new rules cut you off, pf disables itself
+  and you can get back in. After confirming the
+  session survived, cancel the job (`atq`, then
+  `atrm <job>`) — do not leave it behind.
 - After enabling, verify the default policy blocks
   incoming traffic.
 - Start/stop: `service pf start`, `service pf stop`
@@ -48,17 +71,29 @@ Rules for FreeBSD (all versions).
 ## Automatic Security Updates
 
 - **Base system:** `freebsd-update fetch install`
-  (non-interactive: `freebsd-update --not-running-
-  from-cron fetch install`)
-- **Packages:** `pkg upgrade -y`
+  (non-interactive:
+  `freebsd-update --not-running-from-cron fetch install`)
+- **Packages:** `pkg upgrade` (dry-run: `pkg upgrade -n`)
 - There is no built-in equivalent of
   `unattended-upgrades`. Flag this to the user.
-- Recommend a daily cron job:
+- Unattended upgrades are a **decision for the
+  user**, not a default. Prefer a notify-only cron
+  job that audits pending updates without applying
+  them:
   ```
-  # /etc/cron.d/freebsd-updates or root crontab
-  @daily freebsd-update --not-running-from-cron \
-    fetch install && pkg upgrade -y
+  # root crontab (crontab -e) — no user field:
+  @daily pkg upgrade -n 2>&1 | mail -s "pkg updates" root
   ```
+  ```
+  # /etc/cron.d/pkg-audit — user field required:
+  @daily root pkg upgrade -n 2>&1 | mail -s "pkg updates" root
+  ```
+- If the user explicitly wants auto-applying
+  updates, warn first: unattended
+  `freebsd-update install` can stage kernel updates
+  that silently require a reboot, and `pkg upgrade -y`
+  full-upgrades every package, not just security
+  fixes.
 
 ## Service Manager
 
@@ -245,6 +280,8 @@ Lua scripts in `/boot/lua/`. The entry point is
   auto-detection can fail after cross-OS
   replacement or when EFI boot entries change.
 - **No `journalctl`** — logs are in `/var/log/`.
+  Use `tail`, `grep`, or `less`. The heinzel
+  changelog uses `logger`, which writes to syslog.
 - **`sudo` is not installed by default** — install
   with `pkg install sudo` and configure
   `/usr/local/etc/sudoers`.
@@ -259,10 +296,12 @@ QEMU's emulated Skylake CPU. The crash occurs
 during RSA key loading.
 
 **Fix:** disable OpenSSL hardware acceleration with
-`OPENSSL_ia32cap=0`. Create wrapper scripts:
+`OPENSSL_ia32cap=0`. Replacing `/usr/sbin/sshd` with
+a wrapper touches an SSH binary — get **explicit
+user confirmation** before doing this:
 
 ```
-# For base sshd:
+# For base sshd (only with user confirmation):
 mv /usr/sbin/sshd /usr/sbin/sshd.real
 cat > /usr/sbin/sshd << 'EOF'
 #!/bin/sh
@@ -272,6 +311,10 @@ EOF
 chmod +x /usr/sbin/sshd
 ```
 
+Base-system updates restore the real binary —
+re-check the wrapper after every
+`freebsd-update install`.
+
 This affects ANY program using OpenSSL crypto on
 emulated x86_64 QEMU. If other services crash with
 SIGSEGV in libcrypto, apply the same workaround.
@@ -279,8 +322,3 @@ SIGSEGV in libcrypto, apply the same workaround.
 **Does not affect:** native ARM64 UTM VMs (Apple
 Silicon with HVF), physical servers, or QEMU VMs
 with KVM hardware virtualization.
-  Use `tail`, `grep`, or `less`. Heinzel changelog
-  uses `logger` which writes to syslog.
-- **`sudo` is not installed by default** — install
-  with `pkg install sudo` and configure
-  `/usr/local/etc/sudoers`.

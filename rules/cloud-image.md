@@ -32,6 +32,9 @@ ssh-keygen -A
 systemctl restart sshd
 ```
 
+sshd restarts are in the always-ask category —
+see `rules/service-reload.md`.
+
 ### 2. cloud-init Hanging
 
 cloud-init tries to contact a metadata service
@@ -124,7 +127,9 @@ steps like creating the `sshd` system user.
    `useradd -r -d /run/sshd -s /usr/sbin/nologin sshd`
 3. Copy default config:
    `cp usr/share/openssh/sshd_config etc/ssh/`
-4. Set `PermitRootLogin yes` in sshd_config
+4. Set `PermitRootLogin prohibit-password` in
+   sshd_config — root logs in with the key from
+   step 6, never with a password over SSH
 5. Generate SSH host keys: `ssh-keygen -A`
    (or generate from the host OS — key format is
    compatible across OSes)
@@ -132,7 +137,14 @@ steps like creating the `sshd` system user.
 7. Enable the service:
    `ln -sf /lib/systemd/system/ssh.service
    etc/systemd/system/multi-user.target.wants/`
-8. Set a root password in `/etc/shadow`
+8. Set a root password in `/etc/shadow` — for
+   console access only; SSH stays key-only via
+   step 4
+
+Note: CLAUDE.md's "never modify
+`/etc/ssh/sshd_config`" taboo protects live
+servers. Editing the config inside an offline
+image build is the legitimate exception.
 
 ## Post-Deployment Checklist
 
@@ -169,6 +181,14 @@ qemu-img convert -f raw -O qcow2 image.raw \
 # Write raw image to disk/partition
 dd if=image.raw of=/dev/sdX bs=4M status=progress
 ```
+
+**Gate before the dd:** double-check the target
+device with `lsblk` (or `gpart show` /
+`diskutil list`) and confirm it with the user
+explicitly — a one-letter typo wipes the wrong
+disk. Writing a full-disk image replaces the
+disk's partition table, which per CLAUDE.md is
+taboo without explicit user request.
 
 When writing to a partition (not a full disk),
 mount and extract — do not `dd` a full-disk image

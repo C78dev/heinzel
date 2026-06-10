@@ -25,9 +25,14 @@ current_version() {
 
 show_changelog_section() {
   VER="$1"
+  # Match the version heading exactly ("## 2.8.0"
+  # must not also match "## 2.8.0-rc1"): compare
+  # the whole second field, not a prefix.
   if [ -f CHANGELOG.md ]; then
-    sed -n "/^## ${VER}/,/^## /{/^## ${VER}/d;/^## /d;p;}" \
-      CHANGELOG.md | sed '/^$/d'
+    awk -v ver="$VER" '
+      /^## / { if (insec) exit; insec = ($2 == ver); next }
+      insec && NF { print }
+    ' CHANGELOG.md
   fi
 }
 
@@ -81,7 +86,7 @@ case "${1:-}" in
 
   --unpin)
     git checkout main
-    git pull --quiet
+    git pull --ff-only --quiet
     echo "heinzel unpinned — now on main ($(current_version))"
     ;;
 
@@ -108,7 +113,16 @@ case "${1:-}" in
     fi
 
     OLD_VERSION=$(current_version)
-    git pull --quiet
+    # --ff-only: never create a silent merge commit
+    # on a diverged main. Capture the failure so
+    # set -e doesn't kill us with a raw git error.
+    if ! OUTPUT=$(git pull --ff-only --quiet 2>&1); then
+      echo "heinzel update failed: $OUTPUT"
+      echo "Likely causes: local changes (run 'git status',"
+      echo "stash them with 'git stash'), local commits on a"
+      echo "diverged main, or no network. Fix and re-run."
+      exit 1
+    fi
     NEW_VERSION=$(current_version)
 
     # Run the 1.x → 2.0 migration if needed.

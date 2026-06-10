@@ -14,11 +14,17 @@ When connecting to a hostname with no
 `memory/servers/<hostname>/` directory (and not a
 symlink):
 
-1. **Resolve the IP:**
+1. **Resolve the IP(s).** Query A records and
+   filter for addresses — a bare `dig +short` can
+   return a CNAME target instead of an IP:
    ```
-   dig +short <hostname> | head -1
+   dig +short A <hostname> | \
+     grep -E '^[0-9.]+$'
    ```
-   Fallback if `dig` is unavailable:
+   Verify the syntax against the dig version on
+   the machine running the query (see CLAUDE.md →
+   Verify Before Running). Fallback if `dig` is
+   unavailable:
    ```
    python3 -c "import socket; \
      print(socket.gethostbyname('<hostname>'))"
@@ -48,9 +54,14 @@ its own SSH user.
 ## IP Verification
 
 On every connection to a known server, verify the
-current IP matches `- IP:` in memory. If the IP has
-changed, **stop and tell the user.** Ask whether the
-server migrated (update IP) or the alias now points
+current IP matches `- IP:` in memory. Compare
+against the full set of resolved IPs: round-robin
+DNS gives a host multiple A records, and any
+overlap with the stored IP(s) counts as a match.
+Note multi-A hosts in server memory instead of
+alarming. Only when there is no overlap at all,
+**stop and tell the user.** Ask whether the server
+migrated (update IP) or the alias now points
 elsewhere (detach it).
 
 ## Removing an Alias

@@ -18,6 +18,16 @@ echo "###reboot###"; <reboot probe>
 Then split the output on `###<key>###` markers to fill the
 comparison table.
 
+**Privilege handling.** The sshd and firewall probes need
+root. When the SSH user is not root, try `sudo -n` (never an
+interactive sudo — BatchMode means no prompts). When neither
+root nor passwordless sudo is available, the probe must emit
+the sentinel `unknown(needs-root)` instead of a degraded
+answer — an active ufw must never be reported as `none` just
+because the probe lacked permission to read its state. See
+`references/output-format.md` for how the sentinel is
+rendered and why it is excluded from drift detection.
+
 ## 1. Unattended-upgrades (Debian/Ubuntu)
 
 ```bash
@@ -51,23 +61,39 @@ Row keys to extract for the table:
 
 ## 2. sshd effective config
 
+`sshd -T` needs root (it reads host keys). Probe with the
+privilege ladder — direct as root, `sudo -n` otherwise, and
+the sentinel when neither works:
+
 ```bash
-sshd -T 2>/dev/null | grep \
-  -e '^permitrootlogin ' \
-  -e '^passwordauthentication ' \
-  -e '^pubkeyauthentication ' \
-  -e '^kbdinteractiveauthentication ' \
-  -e '^challengeresponseauthentication ' \
-  -e '^x11forwarding ' \
-  -e '^allowtcpforwarding ' \
-  -e '^maxauthtries ' \
-  -e '^logingracetime ' \
-  -e '^usepam ' \
-  -e '^port '
+if [ "$(id -u)" = "0" ]; then
+  SSHD="sshd"
+elif sudo -n true 2>/dev/null; then
+  SSHD="sudo -n sshd"
+else
+  SSHD=""
+fi
+if [ -z "$SSHD" ]; then
+  echo "unknown(needs-root)"
+else
+  $SSHD -T 2>/dev/null | grep \
+    -e '^permitrootlogin ' \
+    -e '^passwordauthentication ' \
+    -e '^pubkeyauthentication ' \
+    -e '^kbdinteractiveauthentication ' \
+    -e '^challengeresponseauthentication ' \
+    -e '^x11forwarding ' \
+    -e '^allowtcpforwarding ' \
+    -e '^maxauthtries ' \
+    -e '^logingracetime ' \
+    -e '^usepam ' \
+    -e '^port '
+fi
 ```
 
 Row keys: each line is `key value`. Compare column-by-
-column.
+column. A host whose sshd column is `unknown(needs-root)`
+is reported as such, never as "defaults".
 
 Highlight as drift:
 
@@ -79,23 +105,50 @@ Highlight as drift:
 
 ## 3. Firewall posture
 
+Reading firewall state needs root (`ufw status` and
+`firewall-cmd` both refuse for normal users). Detect the
+*tool* via `command -v` (no root needed), but only report
+its *state* when root or `sudo -n` is available — otherwise
+emit the sentinel. Never let a permission error degrade to
+`tool=none`: that fabricates "no firewall" on a host whose
+firewall is simply unreadable.
+
 ```bash
+if [ "$(id -u)" = "0" ]; then
+  SUDO=""
+elif sudo -n true 2>/dev/null; then
+  SUDO="sudo -n"
+else
+  SUDO="-"
+fi
 # Prefer ufw on Debian/Ubuntu; firewall-cmd on RHEL family.
-if command -v ufw >/dev/null 2>&1 \
-   && ufw status >/dev/null 2>&1; then
+if command -v ufw >/dev/null 2>&1; then
   echo "tool=ufw"
-  ufw status verbose 2>&1
+  if [ "$SUDO" = "-" ]; then
+    echo "state=unknown(needs-root)"
+  else
+    $SUDO ufw status verbose 2>&1
+  fi
 elif command -v firewall-cmd >/dev/null 2>&1; then
   echo "tool=firewalld"
-  firewall-cmd --list-all 2>&1
+  if [ "$SUDO" = "-" ]; then
+    echo "state=unknown(needs-root)"
+  else
+    $SUDO firewall-cmd --list-all 2>&1
+  fi
 else
   echo "tool=none"
 fi
 ```
 
+(`$SUDO` is intentionally unquoted so an empty value
+disappears; `-` marks "no privilege path".)
+
 Row keys for the table:
 
 - Tool in use (`ufw` / `firewalld` / `none`)
+- State — `unknown(needs-root)` when the tool exists but
+  its status is unreadable without root
 - Default policy (deny incoming required)
 - Number of open ports / services
 - Whether 22/tcp is open (must be yes)

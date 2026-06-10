@@ -69,8 +69,8 @@ availability), or LTS** releases. Ignore:
 
 - Beta, RC, alpha, nightly, preview builds
 - Development branches or snapshots
-- Odd-numbered development releases (e.g.
-  Fedora Rawhide, Node.js odd-numbered versions)
+- Development branches (e.g. Fedora Rawhide) and
+  odd-numbered Node.js releases
 
 For language runtimes, prefer LTS versions when
 the project uses LTS (e.g. Node.js LTS, not
@@ -118,7 +118,9 @@ one-liner after completing the immediate task:
 
 ```
 Note: Ollama 0.20.0 is available (installed:
-0.18.2). Run `ollama update` when convenient.
+0.18.2). Upgrade by re-running the official
+installer (or the package manager it was
+installed with) when convenient.
 ```
 
 Do not interrupt the user's workflow. Place the

@@ -1,8 +1,9 @@
 # Server Memory
 
 Each server: `memory/servers/<hostname>/` with
-`memory.md`, `changelog.log`, and optionally
-`todo.md`.
+`memory.md`, `changelog.log`, optionally `todo.md`,
+and optionally `rules.md` (per-server rule
+overrides — see CLAUDE.md → Rule Overrides).
 
 **On first connection:** create directory and
 `memory.md` with at least:
@@ -24,3 +25,5 @@ add `Mode: local` for localhost).
 **Update memory immediately after any system
 change.** Keep it compact (~30 lines max). Remove
 outdated entries, merge related items.
+
+**Update `Last connected:` on every connection.**

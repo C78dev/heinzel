@@ -74,6 +74,11 @@ Priority 100 means testing packages are never
 installed automatically — only when explicitly
 requested with `-t testing`.
 
+**Warning:** a package pinned at priority 100 is
+frozen — it stops receiving updates, including
+security fixes, and must be tracked manually. See
+`rules/version-check.md`.
+
 **Step 2 — Install the specific package:**
 
 ```
@@ -84,11 +89,14 @@ apt-get -t testing install <package>
 **Step 3 — Verify no collateral upgrades:**
 
 ```
-apt list --installed 2>/dev/null | grep testing
+apt-cache policy <package>
 ```
 
-If more than the intended package was pulled from
-testing, flag this to the user immediately.
+The line marked `***` shows the installed version;
+check which repo it came from. Repeat for any
+dependencies the install pulled in. If more than
+the intended package came from testing, flag this
+to the user immediately.
 
 **Step 4 — Document in server memory:**
 
@@ -137,8 +145,10 @@ third-party PPAs.
 - Check status: `ufw status verbose`
 - If `ufw` is not installed, flag it to the user.
 - **Critical:** before enabling `ufw`, always allow SSH
-  first: `ufw allow OpenSSH`. Enabling `ufw` without an
-  SSH rule locks you out of the server immediately.
+  first: `ufw allow OpenSSH` (or `ufw allow 22/tcp`).
+  Enabling `ufw` without an SSH rule locks you out of
+  the server immediately. The safe sequence is:
+  `ufw allow OpenSSH && ufw enable`.
 - After enabling, verify the default policy:
   `ufw status verbose` — look for
   `Default: deny (incoming)`. If incoming is set to
@@ -148,7 +158,11 @@ third-party PPAs.
 
 - **Expected:** `unattended-upgrades`
 - Config: `/etc/apt/apt.conf.d/50unattended-upgrades`
+- Activation also requires
+  `APT::Periodic::Unattended-Upgrade "1";` — usually
+  set in `/etc/apt/apt.conf.d/20auto-upgrades`.
 - Check if active: `systemctl status unattended-upgrades`
+  and `systemctl status apt-daily-upgrade.timer`
 - If not installed, flag it to the user.
 
 ## Service Manager
@@ -184,16 +198,20 @@ third-party PPAs.
   to avoid downtime. See `rules/service-reload.md`
   for the auto-proceed policy and the
   `memory/service-policy.md` opt-out / opt-in lists.
-- **Before enabling `ufw`**, always allow SSH first:
-  `ufw allow OpenSSH` (or `ufw allow 22/tcp`). Running
-  `ufw enable` without an SSH rule locks you out of
-  the server immediately. The safe sequence is:
-  `ufw allow OpenSSH && ufw enable`.
-- After that, `ufw` must be enabled (`ufw enable`) —
-  installing alone does nothing.
+- Before enabling `ufw`, allow SSH first — see the
+  lockout warning in the Firewall section above.
+- `ufw` must be enabled (`ufw enable`) — installing
+  alone does nothing.
+- Prefer `apt-get upgrade` for routine updates.
+  `apt-get dist-upgrade` (or `full-upgrade`) may
+  remove packages — always dry-run with `-s` first
+  and ask the user.
 - Debian's `nginx` uses `sites-available/` +
   `sites-enabled/` symlinks. Ubuntu follows the same
   pattern. Do not put configs directly in `conf.d/`
   unless there is no `sites-available/` directory.
-- `unattended-upgrades` requires both the package and
-  the apt config — check both.
+- `unattended-upgrades` needs three things: the
+  package, `APT::Periodic::Unattended-Upgrade "1";`
+  (usually `/etc/apt/apt.conf.d/20auto-upgrades`),
+  and an active `apt-daily-upgrade.timer` — check
+  all three.

@@ -54,6 +54,18 @@ applies before any of this runs.
 
        logger -t heinzel "Security audit: 1 WARN, 1 INFO"
 
+## Scope and limits
+
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE) and
+  macOS are fully covered by the references below.
+- FreeBSD baselines are not yet covered. On a FreeBSD host,
+  do not silently skip: run the closest equivalent checks
+  manually (`pkg audit -F` for known-vulnerable packages,
+  `pfctl -s info` / `pfctl -sr` for the firewall, `sshd -T`
+  for SSH hardening, `find / -perm -4000` for SUID, sysctl
+  `security.*` knobs) and state in the report that FreeBSD
+  has no baseline reference yet.
+
 ## Cross-references
 
 **Automatic security updates** are checked during housekeeping

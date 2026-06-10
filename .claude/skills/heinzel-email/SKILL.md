@@ -151,6 +151,13 @@ policy: <always|never>`:
   - **Never** — write `MTA install policy: never` into
     `memory.md`, abort.
 
+Before any install — whichever answer allowed it — run the
+mandatory service class conflict check from
+`rules/service-class-check.md`. An MTA is a service class:
+the check can find a member the 5R.1 transport probe missed
+(e.g. an installed-but-stopped postfix), and a second MTA
+must never be added without explicit user approval.
+
 Install targets (OS-family defaults):
 - Debian/Ubuntu: `apt-get install -y msmtp-mta bsd-mailx`
 - RHEL/Fedora: `dnf install -y msmtp s-nail`
@@ -573,5 +580,7 @@ and `restart-never`.
 - `rules/changelog.md` — session logging procedure.
 - `rules/best-practices.md` — anti-pattern review before
   installing software.
+- `rules/service-class-check.md` — mandatory conflict check
+  before installing an MTA (gate B).
 - `rules/backups.md` — config backup before any edit (e.g.
   `/etc/msmtprc`).

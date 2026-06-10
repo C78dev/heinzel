@@ -1,18 +1,31 @@
 # Privilege Escalation
 
+**Local mode:** when the target is the local
+machine, skip the root SSH fallback entirely. If
+sudo is unusable, go straight to unprivileged mode
+(see `CLAUDE.md` → Local mode).
+
 ## Sudo
 
 When connecting as a non-root user and a privileged
-action is first needed, probe:
+action is first needed, check availability, then
+probe:
 
 ```
-sudo -n true 2>/dev/null
+command -v sudo && sudo -n true
 ```
 
-- **Exit code 0** -> sudo works. Record
+- **`sudo` not found** -> record
+  `- Sudo: unavailable (not installed)`.
+  Proceed to root SSH fallback.
+- **Probe exits 0** -> sudo works. Record
   `- Sudo: passwordless` in server memory.
-- **Non-0** -> sudo requires password (unusable).
-  Record `- Sudo: requires password (unusable)`.
+- **Probe non-0** -> read the error message to
+  tell the cases apart and record the accurate
+  reason: `- Sudo: requires password (unusable)`
+  for a password prompt, or
+  `- Sudo: no sudoers entry (unusable)` for a
+  "not in the sudoers file" error.
   Proceed to root SSH fallback.
 
 On subsequent connections, check server memory for
@@ -29,10 +42,9 @@ ssh -o BatchMode=yes -o ConnectTimeout=5 \
 ```
 
 - **Works:** record `- Root SSH: available`.
-- **Fails:** record the following and enter
-  unprivileged mode:
+- **Fails:** keep the recorded sudo line, add the
+  following, and enter unprivileged mode:
   ```
-  - Sudo: requires password (unusable)
   - Root SSH: unavailable
   - Privilege mode: unprivileged
   ```

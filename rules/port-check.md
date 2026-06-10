@@ -81,23 +81,28 @@ instead, port selection is not needed.
 Run the appropriate command for the detected OS.
 Replace `<port>` with the target port number.
 
+**Never match with a bare `grep :<port>`** — it
+also matches longer port numbers (`:300` hits
+`:3000`). Use ss's native filter or anchor the
+grep with a word boundary, as shown below.
+
 ### Linux
 
 ```bash
-ss -tulnp | grep :<port>
+ss -tulnp 'sport = :<port>'
 ```
 
 The `-p` flag requires root to show process names.
 Unprivileged fallback:
 
 ```bash
-ss -tuln | grep :<port>
+ss -tuln 'sport = :<port>'
 ```
 
 ### FreeBSD
 
 ```bash
-sockstat -4 -6 -l | grep :<port>
+sockstat -4 -6 -l | grep -E ':<port>\b'
 ```
 
 No root needed. Shows user, command, PID, protocol,

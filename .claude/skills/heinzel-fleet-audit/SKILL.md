@@ -2,13 +2,14 @@
 name: heinzel-fleet-audit
 argument-hint: "[hostname1 hostname2 ...]"
 description: Compare key policies across all servers in
-  memory/servers/ to surface silent drift. Read-only — never
-  modifies any host. Probes unattended-upgrades, sshd effective
-  config, firewall posture, MTA, time sync, and auto-reboot
-  behaviour. Use when the user asks to "fleet audit", "vergleiche
-  alle server", "policy drift check", "are my servers configured
-  the same?", or after a fix on one host to find which others
-  carry the same bug.
+  memory/servers/ to surface silent drift. Makes no configuration
+  changes; writes one audit-trail line to each host's journal.
+  Probes unattended-upgrades, sshd effective config, firewall
+  posture, MTA, time sync, and auto-reboot behaviour. Use when
+  the user asks to "fleet audit", "vergleiche alle server",
+  "policy drift check", "are my servers configured the same?",
+  or after a fix on one host to find which others carry the
+  same bug.
 ---
 
 # heinzel-fleet-audit
@@ -19,9 +20,11 @@ other. This skill closes that gap by probing the same set of
 settings on every server in `memory/servers/` and rendering a
 side-by-side comparison so silent drift becomes visible.
 
-**Read-only.** Never modifies any host. Acting on findings is
-a separate step (heinzel-housekeeping for per-host fixes, or
-manual edits with explicit user approval).
+**No configuration changes.** The audit never alters any
+host's configuration. The only write is a single audit-trail
+line to each host's system journal (step 6 below). Acting on
+findings is a separate step (heinzel-housekeeping for
+per-host fixes, or manual edits with explicit user approval).
 
 **Never run automatically** — only on explicit user request.
 

@@ -159,15 +159,31 @@ and skip sudoers entirely.
 ## Login Shell Override for Deployment
 
 The deploy user is created with
-`/usr/sbin/nologin` for security, but SSH requires
-a shell to execute commands.
+`/usr/sbin/nologin` for security, but SSH runs
+every command — including `command=` forced
+commands — through the user's login shell.
+With `nologin` as the shell, every connection is
+refused, so a `command=` restriction cannot make
+a `nologin` user usable for deployment.
 
-**Preferred:** keep `nologin` and use SSH
-`command=` restriction in `authorized_keys`:
+**Preferred:** give the deploy user a minimal
+real shell and lock the key down with a forced
+command plus restrictive key options:
+
+```bash
+usermod -s /bin/sh deploy
+```
+
+In `authorized_keys`:
 
 ```
-command="/home/deploy/deploy.sh",no-port-forwarding ssh-ed25519 AAAA...
+command="/home/deploy/deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA...
 ```
+
+The forced command means the key can only ever
+run `deploy.sh`, regardless of what the client
+requests — the shell is just the interpreter
+sshd uses to launch it.
 
 **Alternative:** if the deployment process needs a
 full shell (e.g. rsync, multiple commands):
@@ -177,8 +193,9 @@ usermod -s /bin/bash deploy
 ```
 
 Discuss the trade-off with the user: a full shell
-is more flexible but increases the attack surface
-if the key is compromised.
+without a forced command is more flexible but
+increases the attack surface if the key is
+compromised.
 
 ## Firewall
 

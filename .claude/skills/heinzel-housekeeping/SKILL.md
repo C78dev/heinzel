@@ -71,6 +71,18 @@ Read on demand, only when the relevant section applies:
 - `references/unprivileged.md` — which checks work without root
   and how to report skipped ones.
 
+## Scope and limits
+
+- Linux (Debian, Ubuntu, RHEL, CentOS, Fedora, SUSE) and
+  macOS are fully covered by the baseline references above.
+- FreeBSD baselines are not yet covered. On a FreeBSD host,
+  do not silently skip: run the closest equivalent checks
+  manually (`pkg audit -F`, `pkg upgrade -n`,
+  `freebsd-update fetch` dry run, `pfctl -s info` for the
+  firewall, `df -h` / `swapinfo` / `uptime` for the basics,
+  `service -e` for enabled services) and state in the report
+  that FreeBSD has no baseline reference yet.
+
 ## Custom checks
 
 Users add their own checks in `memory/housekeeping.md`

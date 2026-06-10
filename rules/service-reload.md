@@ -140,9 +140,12 @@ show the test output if it fails.
 | haproxy        | `haproxy -c -f <file>`             |
 | unbound        | `unbound-checkconf`                |
 
-If the service has no known test, proceed with the
-reload (they're rare; most daemons with reload
-support ship a test).
+If no config test is known for the service, ask
+the user before reloading — auto-proceed requires
+a test that exists AND passes (see "Default
+Behavior" above). A brief ask is fine; such
+services are rare, since most daemons with reload
+support ship a test.
 
 ## Always Ask (overrides auto-proceed)
 

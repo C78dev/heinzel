@@ -11,7 +11,7 @@ its OS.
    (see `rules/dns-aliases.md`). If the hostname is
    an alias for a known server, skip OS detection.
 
-1. Determine Linux or macOS: `uname -s`
+1. Determine Linux, macOS, or FreeBSD: `uname -s`
 
 2. **If Linux** — detect distro and version:
    ```
@@ -19,6 +19,14 @@ its OS.
      echo "${ID}|${VERSION_ID}|${PRETTY_NAME}"
    ```
    Distro families: `debian`, `rhel`, `suse`.
+   Map the distro to a family via the os-release
+   `ID` and `ID_LIKE` fields (e.g. `ubuntu` →
+   `debian`; `centos`, `rocky`, `alma`, `fedora` →
+   `rhel`; `opensuse*` variants → `suse`). If no
+   family file matches (e.g. Alpine, Arch), tell
+   the user, proceed cautiously with generic
+   commands, and apply extra verify-before-running
+   care.
    Read `rules/<family>.md`. Gather hardware info
    (`lscpu`, `free -h`, `df -h`).
 
@@ -41,10 +49,10 @@ its OS.
 
 ## On subsequent connections
 
-1. Read memory file and changelog.
-2. Check for `todo.md`.
-3. Run the activity check
-   (see `rules/activity-check.md`).
-4. Read the matching rule file.
-5. Verify OS version is still current. Update memory
-   if changed.
+Subsequent connections run the same pipeline as the
+first (see `rules/first-connection.md`), including
+the blacklist and read-only checks. Specific to
+known servers: read the memory file, changelog, and
+`todo.md` (if present) before any work, read the
+matching rule file, and verify the OS version is
+still current — update memory if it changed.
