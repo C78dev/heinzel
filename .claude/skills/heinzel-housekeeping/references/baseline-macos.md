@@ -2,6 +2,12 @@
 
 Run these on macOS machines.
 
+## Backup Presence
+
+Run the generic "any backup at all?" check — see
+`references/backup-presence.md`. On macOS the primary path is
+Time Machine via `tmutil`.
+
 ## Disk Usage
 
 ```bash

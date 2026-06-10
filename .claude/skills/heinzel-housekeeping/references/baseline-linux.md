@@ -2,6 +2,12 @@
 
 Run these on every Linux server.
 
+## Backup Presence
+
+Run the generic "any backup at all?" check — see
+`references/backup-presence.md`. It runs on every host,
+independent of `memory.md` service entries.
+
 ## Disk Usage
 
 ```bash

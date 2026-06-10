@@ -15,3 +15,10 @@ At the end of the report, add a section:
 ```
 
 List each skipped check with a brief reason.
+
+Backup presence: most probes survive without root —
+`command -v`, `systemctl list-timers`, and `/etc/cron.d` is
+usually world-readable. The root crontab (`crontab -l` as
+root) and `/var/spool/cron` are not; report those as
+"skipped: needs root" and never escalate just for this
+check.

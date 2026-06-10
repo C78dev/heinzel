@@ -23,7 +23,9 @@ sudo -u postgres psql -t -A -c \
 ## Backups (autopostgresqlbackup)
 
 Triggered when `memory.md` mentions autopostgresqlbackup or
-PostgreSQL backups.
+PostgreSQL backups. (These are *specific* backup checks; the
+generic "any backup at all?" presence check lives in
+`references/backup-presence.md` and always runs.)
 
 ```bash
 # Find the most recent backup file

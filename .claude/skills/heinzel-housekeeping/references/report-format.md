@@ -39,7 +39,9 @@ Versions   2 updates available (see below)
 - **Issues section** only appears if problems exist. Sort by
   severity: CRITICAL first, then WARN, then INFO.
 - **Services section** only appears if the server has services in
-  its `memory.md` file.
+  its `memory.md` file — except the `Backups` line, which is
+  always present (from the backup-presence check), even when
+  `memory.md` lists no backup service.
 - **One line per item.** Keep it scannable.
 - Severity levels:
   - `CRITICAL` — needs immediate attention

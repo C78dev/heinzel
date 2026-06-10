@@ -37,7 +37,9 @@ applies before any of this runs.
    CLAUDE.md session-start preflight — do not re-read it.
 2. **Select checks.** Run all baseline checks for the detected OS
    plus any service-specific checks triggered by entries in the
-   server's `memory.md` (e.g. PostgreSQL, nginx, Docker).
+   server's `memory.md` (e.g. PostgreSQL, nginx, Docker). The
+   backup-presence check from `references/backup-presence.md`
+   runs on every host, independent of `memory.md` entries.
 3. **Run the version check** procedure from
    `rules/version-check.md` for all Tier 1 software and include the
    "Versions" section in the report.
@@ -65,6 +67,9 @@ Read on demand, only when the relevant section applies:
   updates, firewall, NTP, logs, SSL certs, kernel.
 - `references/baseline-macos.md` — disk, memory, load, updates,
   Homebrew, Application Firewall, SMART, time sync.
+- `references/backup-presence.md` — generic "any backup at
+  all?" probe, the provider-snapshot question, and the
+  `Backup:` acknowledgment line in `memory.md`.
 - `references/service-checks.md` — PostgreSQL, backups, nginx,
   Docker, Ollama, node_exporter, NVIDIA GPU, MariaDB/MySQL,
   WireGuard. Only run the ones the server's `memory.md` mentions.
