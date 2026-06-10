@@ -27,6 +27,14 @@ Before starting:
    before starting.
 3. **Inventory the current system.** Capture
    everything needed to rebuild (see next section).
+4. **Disable the taboo guard for this session.**
+   The shipped guard hook blocks `mkfs`, partition
+   writers, and `dd` onto raw devices — exactly
+   what this workflow runs by design. Ask the user
+   to relaunch with `HEINZEL_GUARD_DISABLE=1` set
+   in the environment (an inline assignment in a
+   command does not work and is itself blocked),
+   and to unset it again after the replacement.
 
 ## Pre-Replacement Inventory
 

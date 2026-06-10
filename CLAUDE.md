@@ -95,6 +95,14 @@ remote connection before any other work.
   `diskutil list`) is always allowed. Never modify
   `/etc/ssh/sshd_config`. Never delete or overwrite
   SSH keys. Never halt or power off a server.
+  A mechanical guard (`.claude/hooks/guard-taboos.sh`,
+  a PreToolUse hook) backs these taboos in every
+  permission mode. Being blocked by it is expected:
+  explain it to the user, never rephrase or re-quote
+  a command to evade the guard. Legitimate exceptions
+  (e.g. OS replacement) require the operator to set
+  `HEINZEL_GUARD_DISABLE=1` before launching the
+  session.
 - **Firewall & network:** Be extremely careful — a
   mistake cuts off SSH access. Discuss with the user
   first.

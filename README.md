@@ -696,6 +696,20 @@ under pressure.
   `rules/service-reload.md` and the
   `memory/service-policy.md` opt-out / opt-in
   config.
+- **Hard guardrails (Claude Code)** — a shipped
+  PreToolUse hook (`.claude/hooks/guard-taboos.sh`)
+  mechanically blocks the absolute taboos — halt/
+  poweroff, `mkfs`, partition-table writers, deleting
+  SSH keys, writes to `sshd_config` — in **every**
+  permission mode, even
+  `--dangerously-skip-permissions`, and even when the
+  command hides inside an `ssh host "…"` wrapper.
+  Read-only forms (`fdisk -l`, `gpart show`, …) stay
+  allowed. For legitimate exceptions (OS
+  replacement), launch the session with
+  `HEINZEL_GUARD_DISABLE=1`. OpenCode does not read
+  Claude Code hooks — there the prose rules remain
+  the safety layer.
 - **Backs up config files** — copies to
   `/var/backups/heinzel/` before editing
   (auto-cleaned after 30 days).
@@ -900,6 +914,10 @@ bin/
   hooks/
     check-updates.sh   — Auto-check for repo updates and
                          auto-migrate on session start
+    guard-taboos.sh    — PreToolUse hook that blocks taboo
+                         commands in every permission mode
+    guard-taboos-test.sh — Dev-only fixture matrix for the
+                         guard (run manually)
   skills/              — On-demand skills (progressive disclosure)
     heinzel-housekeeping/  — Routine server inspection workflow
                          (SKILL.md + references/)

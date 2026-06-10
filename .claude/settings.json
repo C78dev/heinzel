@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(halt)",
+      "Bash(halt *)",
+      "Bash(poweroff)",
+      "Bash(poweroff *)",
+      "Bash(mkfs*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +17,18 @@
             "type": "command",
             "command": "bash .claude/hooks/check-updates.sh",
             "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/guard-taboos.sh",
+            "timeout": 5
           }
         ]
       }
