@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.11.0 — 2026-06-11
+
+- **Human-readable journal entries.** Journal entries
+  (`logger -t heinzel`) are now one-sentence,
+  plain-language headlines written for admins who were
+  not part of the session: a `[<operator> as
+  <unix-user>]` identity prefix, the change in plain
+  words, and the reason in a single fixed `— because`
+  shape (~250 chars max). Technical detail (backup
+  paths, commit hashes, rollback recipes, verification)
+  moves to the local mirror
+  `memory/servers/<hostname>/changelog.log`, which now
+  carries indented `Detail:` / `Rollback:` / `Verify:` /
+  `Flags:` blocks under each headline — the previous
+  rule had this backwards (walls of text in the journal,
+  compressed mirror). Constraints other admins must know
+  get their own headline entry. Reworked
+  `rules/changelog.md`; updated `rules/activity-check.md`
+  example and README.
+
 ## 2.10.1 — 2026-06-10
 
 - **Fix: taboo guard failed open after `cd` (#2).** The

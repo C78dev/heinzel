@@ -61,8 +61,10 @@ user:
 
 ```
 Recent heinzel activity (last 7 days):
-- [2026-04-12 14:32] Installed nginx, opened port 443
-- [2026-04-11 09:15] Updated Node.js 22.14 → 22.15
+- [2026-04-12 14:32] [alice as root] Installed nginx,
+  opened port 443 — because static site launch
+- [2026-04-11 09:15] [bob as bob] Updated Node.js
+  22.14 → 22.15
 ```
 
 - Group related entries when possible.

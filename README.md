@@ -719,9 +719,12 @@ under pressure.
 - **Auto-detects the OS** — reads `/etc/os-release`
   on Linux or `sw_vers` on macOS and applies the
   right commands for the platform. No guessing.
-- **Logs everything** — all changes are recorded in
-  the system journal (`journalctl -t heinzel`) and
-  mirrored locally in
+- **Logs everything** — every change lands in the
+  system journal (`journalctl -t heinzel`) as a
+  one-line, plain-language headline (who did what,
+  and why) that any admin can follow; the full
+  technical detail (rollback paths, verification,
+  flags) is mirrored locally in
   `memory/servers/<hostname>/changelog.log`.
 - **Remembers servers** — stores OS, services, and
   notes in `memory/servers/` for future sessions.
